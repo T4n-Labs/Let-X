@@ -37,7 +37,8 @@ let/
 
 ## Documentation
 
-Documentation You Can Read.[Here](./vdocs/docs.md)
+Dokumentasi.[Disini](./vdocs/docs.md#indonesia)
+Documentation.[Here](./vdocs/docs.md#english)
 
 ---
 * @T4n-Labs[https://github.com/T4n-Labs]
