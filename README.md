@@ -1,6 +1,6 @@
 # Let (VUR Helper)
 
-CLI tool untuk mengakses VUR (Void User Repository) pada T4n OS.
+CLI Tool/VUR-Helper untuk mengakses VUR (Void User Repository) dengan Mudah untuk Void Linux, Dan Turunannya.
 
 ## Features
 - Search package
@@ -26,23 +26,19 @@ let/
 │       └── print.py        → output Rich (tabel, panel, warna)
 ├── tests/
 │   └── test_search.py      → 12 unit test
+├── vdocs/
+│   └── docs.md
+├── xbps-template/
+│   └── template            → Template XBPS-SRC
+├── install.sh              → Script Installation
 ├── pyproject.toml
 └── README.md
 ```
 
-## Usage
-```bash
-# Installation
-$ cd let && pip install -e
-$ ./install
+## Documentation
 
-# Command
-$ let search discord
-$ let search zen --category extra
-$ let info wine
-$ let list
-$ let list --category multilib
-$ let get discord
-$ let get wine --force
-$ let update
-```
+Documentation You Can Read.[Here](./vdocs/docs.md)
+
+---
+* @T4n-Labs[https://github.com/T4n-Labs]
+* @Gh0sT4n[https://github.com/gh0st4n]

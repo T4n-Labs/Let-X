@@ -1,0 +1,25 @@
+# Template for 'Let'
+pkgname=let
+version=0.1.0
+revision=1
+short_desc="VUR Helper untuk Void Linux — CLI tool untuk mengelola VUR packages"
+maintainer="Maintainer Name <maintainer@email.com>"
+license="MIT"
+homepage="https://github.com/T4n-Labs/let"
+distfiles="https://github.com/T4n-Labs/let/archive/refs/tags/v${version}.tar.gz"
+checksum="<ganti-dengan-sha256-dari-tarball>"
+build_style=python3-module
+hostmakedepends="python3 python3-pip python3-hatchling"
+depends="python3 python3-httpx python3-rich python3-typer"
+
+post_install() {
+	# Install lisensi MIT ke /usr/share/licenses/let/
+	vlicense LICENSE
+
+	# Install README
+	vdoc README.md
+
+	# Pastikan binary punya permission yang benar
+	# vbin sudah otomatis set 0755, tapi kita verifikasi
+	chmod 0755 "${DESTDIR}/usr/bin/${pkgname}"
+}
