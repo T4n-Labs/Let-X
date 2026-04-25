@@ -11,9 +11,9 @@ license     = { text = "MIT" }
 requires-python = ">=3.11"
 
 dependencies = [
-    "typer[all]>=0.12",   # CLI framework + Rich
-    "httpx>=0.27",        # HTTP client
-    "rich>=13.0",         # Pretty output
+    "httpx>=0.27",   # HTTP client
+    "rich>=13.0",    # Pretty output
+    # argparse: built-in Python stdlib
 ]
 
 [project.scripts]
