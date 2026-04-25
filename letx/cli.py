@@ -1,5 +1,5 @@
 """
-cli.py — Entry point CLI untuk Let
+cli.py — Entry point CLI untuk Let-X
 """
 
 from __future__ import annotations
@@ -9,11 +9,11 @@ from typing import Annotated, Optional
 import typer
 from rich.console import Console
 
-from let.ops.search  import search_packages, list_packages, available_categories
-from let.ops.info    import get_info
-from let.repo.fetch  import download_package
-from let.repo.index  import fetch_index, cache_info
-from let.utils.print import (
+from letx.ops.search  import search_packages, list_packages, available_categories
+from letx.ops.info    import get_info
+from letx.repo.fetch  import download_package
+from letx.repo.index  import fetch_index, cache_info
+from letx.utils.print import (
     console,
     print_package_table,
     print_package_info,
@@ -24,15 +24,15 @@ from let.utils.print import (
 )
 
 app = typer.Typer(
-    name="let",
-    help="[cyan]Let[/cyan] — VUR Helper untuk Void Linux",
+    name="letx",
+    help="[cyan]Let-X[/cyan] — VUR Helper for Void Linux",
     rich_markup_mode="rich",
     no_args_is_help=True,
     pretty_exceptions_show_locals=False,
 )
 
 
-# ─── let search <keyword> ─────────────────────────────────
+# ─── letx search <keyword> ────────────────────────────────
 
 @app.command("search")
 def cmd_search(
@@ -43,7 +43,11 @@ def cmd_search(
     ] = None,
 ) -> None:
     """Cari package di VUR berdasarkan keyword."""
-    print_info(f"Mencari '{keyword}'" + (f" [kategori: {category}]" if category else "") + " ...")
+    print_info(
+        f"Mencari '{keyword}'"
+        + (f" [kategori: {category}]" if category else "")
+        + " ..."
+    )
 
     try:
         results = search_packages(keyword, category=category)
@@ -58,7 +62,7 @@ def cmd_search(
     print_package_table(results, title=f"Hasil Pencarian: {keyword}")
 
 
-# ─── let info <package> ───────────────────────────────────
+# ─── letx info <package> ──────────────────────────────────
 
 @app.command("info")
 def cmd_info(
@@ -78,7 +82,7 @@ def cmd_info(
     print_package_info(info)
 
 
-# ─── let list ─────────────────────────────────────────────
+# ─── letx list ────────────────────────────────────────────
 
 @app.command("list")
 def cmd_list(
@@ -94,7 +98,7 @@ def cmd_list(
         print_error(str(e))
         raise typer.Exit(1)
 
-    title = f"Package VUR" + (f" — Kategori: {category}" if category else " — Semua")
+    title = "Package VUR" + (f" — Kategori: {category}" if category else " — Semua")
 
     if not packages:
         cats = available_categories()
@@ -105,7 +109,7 @@ def cmd_list(
     print_package_table(packages, title=title)
 
 
-# ─── let get <package> ────────────────────────────────────
+# ─── letx get <package> ───────────────────────────────────
 
 @app.command("get")
 def cmd_get(
@@ -115,8 +119,7 @@ def cmd_get(
         typer.Option("--force", "-f", help="Re-download meski sudah ada lokal"),
     ] = False,
 ) -> None:
-    """Download template package dari VUR ke lokal (~/.config/let/)."""
-    # Cari di index dulu
+    """Download template package dari VUR ke lokal (~/.config/letx/)."""
     try:
         info = get_info(name)
     except RuntimeError as e:
@@ -127,7 +130,6 @@ def cmd_get(
         print_error(f"Package '[bold]{name}[/bold]' tidak ditemukan di VUR.")
         raise typer.Exit(1)
 
-    # Cek apakah sudah ada
     if info["installed_locally"] and not force:
         print_warn(
             f"Template '[bold]{name}[/bold]' sudah ada di: {info['local_path']}\n"
@@ -135,8 +137,8 @@ def cmd_get(
         )
         raise typer.Exit(0)
 
-    pkg_path = info["path"]       # misal: "extra/discord"
-    category = info["category"]   # misal: "extra"
+    pkg_path = info["path"]
+    category = info["category"]
 
     print_info(f"Mengambil template '[bold]{name}[/bold]' ({category}) ...")
 
@@ -158,15 +160,15 @@ def cmd_get(
     print_info("Selanjutnya kamu bisa build dengan xbps-src (coming soon).")
 
 
-# ─── let update ───────────────────────────────────────────
+# ─── letx update ──────────────────────────────────────────
 
 @app.command("update")
 def cmd_update() -> None:
     """Refresh cache index packages dari VUR."""
-    print_info("Memperbarui index dari VUR ...")
+    print_info("Updating the index of VUR...")
     try:
         packages = fetch_index(force=True)
-        print_success(f"Index diperbarui — {len(packages)} package tersedia.")
+        print_success(f"Index updated — {len(packages)} packages available.")
     except RuntimeError as e:
         print_error(str(e))
         raise typer.Exit(1)

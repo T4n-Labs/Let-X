@@ -6,11 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from let.repo.index import fetch_index
+from letx.repo.index import fetch_index
 
 Package = dict[str, Any]
 
-# Field yang ikut di-search
 _SEARCH_FIELDS = ("name", "maintainer", "homepage")
 
 
@@ -20,7 +19,6 @@ def search_packages(
 ) -> list[Package]:
     """
     Cari packages berdasarkan keyword (case-insensitive).
-    Keyword dicocokkan ke field: name, maintainer, homepage.
 
     Args:
         keyword:  kata kunci pencarian
@@ -34,24 +32,18 @@ def search_packages(
 
     results: list[Package] = []
     for pkg in index:
-        # Filter category dulu
         if category and pkg.get("category", "").lower() != category.lower():
             continue
-        # Cek keyword di semua field
         for field in _SEARCH_FIELDS:
             if kw in str(pkg.get(field, "")).lower():
                 results.append(pkg)
                 break
 
-    # Urutkan: exact name match → name contains → lainnya
     def _rank(pkg: Package) -> int:
         name = pkg["name"].lower()
-        if name == kw:
-            return 0
-        if name.startswith(kw):
-            return 1
-        if kw in name:
-            return 2
+        if name == kw:          return 0
+        if name.startswith(kw): return 1
+        if kw in name:          return 2
         return 3
 
     results.sort(key=_rank)

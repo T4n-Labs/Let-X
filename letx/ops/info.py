@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from let.repo.index import get_package
-from let.repo.fetch import package_exists_locally, local_package_path
+from letx.repo.index import get_package
+from letx.repo.fetch import package_exists_locally, local_package_path
 
 Package = dict[str, Any]
 
@@ -25,8 +25,8 @@ def get_info(name: str) -> dict[str, Any] | None:
     if not pkg:
         return None
 
-    category = pkg.get("category", "")
-    is_local = package_exists_locally(category, name)
+    category   = pkg.get("category", "")
+    is_local   = package_exists_locally(category, name)
     local_path = local_package_path(category, name)
 
     return {

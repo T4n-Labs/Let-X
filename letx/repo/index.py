@@ -4,12 +4,11 @@ repo/index.py — Fetch & cache packages.json dari VUR
 
 import json
 import time
-from pathlib import Path
 from typing import Any
 
 import httpx
 
-from let.config import (
+from letx.config import (
     PACKAGES_URL,
     PACKAGES_CACHE,
     CACHE_TTL,
@@ -44,9 +43,8 @@ def fetch_index(force: bool = False) -> list[Package]:
 
     Returns:
         List of package dicts dari packages.json
-    
+
     Raises:
-        httpx.HTTPError: Jika gagal fetch dari GitHub
         RuntimeError: Jika tidak ada cache dan tidak bisa online
     """
     if not force and _cache_valid():
@@ -60,7 +58,6 @@ def fetch_index(force: bool = False) -> list[Package]:
         return data
 
     except httpx.HTTPError as e:
-        # Jika gagal tapi ada cache lama, pakai itu
         if PACKAGES_CACHE.exists():
             return _read_cache()
         raise RuntimeError(
@@ -83,13 +80,13 @@ def cache_info() -> dict[str, Any]:
     """Informasi status cache saat ini."""
     if not PACKAGES_CACHE.exists():
         return {"exists": False, "path": str(PACKAGES_CACHE)}
-    
+
     age = time.time() - PACKAGES_CACHE.stat().st_mtime
     data = _read_cache()
     return {
-        "exists":    True,
-        "path":      str(PACKAGES_CACHE),
-        "packages":  len(data),
-        "age_secs":  int(age),
-        "fresh":     age < CACHE_TTL,
+        "exists":   True,
+        "path":     str(PACKAGES_CACHE),
+        "packages": len(data),
+        "age_secs": int(age),
+        "fresh":    age < CACHE_TTL,
     }

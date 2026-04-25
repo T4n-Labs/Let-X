@@ -11,7 +11,7 @@ from typing import Callable
 
 import httpx
 
-from let.config import VUR_API_BASE, VUR_RAW_BASE, TEMPLATE_DIRS, ensure_dirs
+from letx.config import VUR_API_BASE, VUR_RAW_BASE, TEMPLATE_DIRS, ensure_dirs
 
 
 # ─── Public ───────────────────────────────────────────────

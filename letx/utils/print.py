@@ -1,5 +1,5 @@
 """
-utils/print.py — Helper output berbasis Rich
+utils/print.py — Helper output berbasis Rich untuk Let-X
 """
 
 from __future__ import annotations
@@ -15,15 +15,15 @@ from rich.text import Text
 console = Console()
 
 # ─── Warna & style tema ───────────────────────────────────
-C_NAME     = "bold cyan"
-C_VER      = "green"
-C_CAT      = "yellow"
-C_MAINT    = "dim white"
-C_LOCAL    = "bold green"
-C_MISSING  = "dim red"
-C_TITLE    = "bold white"
-C_URL      = "blue underline"
-C_COUNT    = "bold magenta"
+C_NAME    = "bold cyan"
+C_VER     = "green"
+C_CAT     = "yellow"
+C_MAINT   = "dim white"
+C_LOCAL   = "bold green"
+C_MISSING = "dim red"
+C_TITLE   = "bold white"
+C_URL     = "blue underline"
+C_COUNT   = "bold magenta"
 
 
 def print_package_table(packages: list[dict[str, Any]], title: str = "") -> None:
@@ -60,13 +60,13 @@ def print_package_table(packages: list[dict[str, Any]], title: str = "") -> None
 
 def print_package_info(info: dict[str, Any]) -> None:
     """Tampilkan detail satu package dalam panel."""
-    name     = info.get("name", "?")
-    version  = info.get("version") or "tidak diketahui"
-    category = info.get("category", "?")
-    homepage = info.get("homepage", "-")
+    name       = info.get("name", "?")
+    version    = info.get("version") or "tidak diketahui"
+    category   = info.get("category", "?")
+    homepage   = info.get("homepage", "-")
     maintainer = info.get("maintainer", "-")
-    path     = info.get("path", "-")
-    is_local = info.get("installed_locally", False)
+    path       = info.get("path", "-")
+    is_local   = info.get("installed_locally", False)
     local_path = info.get("local_path")
 
     status_text = (
@@ -76,23 +76,21 @@ def print_package_info(info: dict[str, Any]) -> None:
     )
 
     content = Text.assemble(
-        ("Nama       : ", "dim"), (name,      C_NAME),     "\n",
-        ("Versi      : ", "dim"), (version,   C_VER),      "\n",
-        ("Kategori   : ", "dim"), (category,  C_CAT),      "\n",
-        ("Path Repo  : ", "dim"), (path,      "white"),    "\n",
-        ("Homepage   : ", "dim"), (homepage,  C_URL),      "\n",
-        ("Maintainer : ", "dim"), (maintainer, C_MAINT),   "\n",
-        ("Status     : ", "dim"),
+        ("Nama       : ", "dim"), (name,       C_NAME),  "\n",
+        ("Versi      : ", "dim"), (version,    C_VER),   "\n",
+        ("Kategori   : ", "dim"), (category,   C_CAT),   "\n",
+        ("Path Repo  : ", "dim"), (path,       "white"), "\n",
+        ("Homepage   : ", "dim"), (homepage,   C_URL),   "\n",
+        ("Maintainer : ", "dim"), (maintainer, C_MAINT), "\n",
     )
-    # Append status (Rich markup, bukan Text)
+
     console.print()
-    panel = Panel(
+    console.print(Panel(
         content,
         title=f"[{C_TITLE}] {name} [/{C_TITLE}]",
         border_style="cyan",
         expand=False,
-    )
-    console.print(panel)
+    ))
     console.print(f"  Status     : {status_text}\n")
 
 

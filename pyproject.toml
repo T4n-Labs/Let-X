@@ -3,27 +3,27 @@ requires      = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name        = "let"
+name        = "letx"
 version     = "0.1.0"
-description = "VUR Helper For Void Linux"
+description = "Let-X — VUR Helper for Void Linux"
 readme      = "README.md"
 license     = { text = "MIT" }
 requires-python = ">=3.11"
 
 dependencies = [
     "typer[all]>=0.12",   # CLI framework + Rich
-    "httpx>=0.27",        # HTTP client async-ready
+    "httpx>=0.27",        # HTTP client
     "rich>=13.0",         # Pretty output
 ]
 
 [project.scripts]
-let = "let.cli:main"
+letx = "letx.cli:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "pytest-httpx>=0.30",  # Mock HTTP untuk testing
+    "pytest-httpx>=0.30",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["let"]
+packages = ["letx"]
