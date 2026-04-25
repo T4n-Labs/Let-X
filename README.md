@@ -1,4 +1,4 @@
-# Let (VUR Helper)
+# Let-X (VUR Helper)
 
 CLI Tool/VUR-Helper untuk mengakses VUR (Void User Repository) dengan Mudah untuk Void Linux, Dan Turunannya.
 
@@ -11,8 +11,8 @@ CLI Tool/VUR-Helper untuk mengakses VUR (Void User Repository) dengan Mudah untu
 
 ## Tree Project
 ```markdown
-let/
-├── let/
+Let-X/
+├── letx/
 │   ├── __init__.py         → versi app
 │   ├── config.py           → semua konstanta (URL, path, TTL)
 │   ├── cli.py              → entry point Typer (5 command)
@@ -25,6 +25,7 @@ let/
 │   └── utils/
 │       └── print.py        → output Rich (tabel, panel, warna)
 ├── tests/
+│   ├── __init__.py
 │   └── test_search.py      → 12 unit test
 ├── vdocs/
 │   └── docs.md
