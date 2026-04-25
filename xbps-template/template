@@ -1,25 +1,38 @@
-# Template for 'Let'
-pkgname=let
+# Template for 'Let-X'
+pkgname=letx
 version=0.1.0
 revision=1
-short_desc="VUR Helper untuk Void Linux — CLI tool untuk mengelola VUR packages"
-maintainer="Maintainer Name <maintainer@email.com>"
-license="MIT"
-homepage="https://github.com/T4n-Labs/let"
-distfiles="https://github.com/T4n-Labs/let/archive/refs/tags/v${version}.tar.gz"
+short_desc="VUR Helper"
+maintainer="Gh0sT4n <darskevoid@gmail.com>"
+license="BSD 2-Clause"
+homepage="https://github.com/T4n-Labs/Let-X"
+distfiles="https://github.com/T4n-Labs/Let-X/archive/refs/tags/v${version}.tar.gz"
 checksum="<ganti-dengan-sha256-dari-tarball>"
 build_style=python3-module
 hostmakedepends="python3 python3-pip python3-hatchling"
 depends="python3 python3-httpx python3-rich python3-typer"
 
-post_install() {
-	# Install lisensi MIT ke /usr/share/licenses/let/
-	vlicense LICENSE
+do_install() {
+    # Install source ke /usr/lib/letx
+    vinstall -d 755 usr/lib/letx
+    cp -r letx ${DESTDIR}/usr/lib/letx/
 
-	# Install README
-	vdoc README.md
+    # Install dependency ke situ (ganti pip target ke DESTDIR)
+    python3 -m pip install \
+        --root ${DESTDIR} \
+        --prefix=/usr \
+        --no-deps \
+        typer httpx rich
 
-	# Pastikan binary punya permission yang benar
-	# vbin sudah otomatis set 0755, tapi kita verifikasi
-	chmod 0755 "${DESTDIR}/usr/bin/${pkgname}"
+    # Wrapper
+    vbin /dev/stdin letx << EOF
+#!/bin/sh
+export PYTHONPATH="/usr/lib/letx:\$PYTHONPATH"
+exec python3 -m letx.cli "\$@"
+EOF
+
+    # Manpage (kalau ada)
+    if [ -f letx.1 ]; then
+        vman letx.1
+    fi
 }
