@@ -1,30 +1,30 @@
-# Let — User Documentation
+# Let-X — User Documentation
 
-> **Let** is a CLI tool for Void Linux that makes it easy to search for, manage, and retrieve package templates from the **VUR (Void User Repository)** — a concept similar to AUR Helper in Arch Linux.
+> **Let-X** is a CLI tool for Void Linux that makes it easy to search for, manage, and retrieve package templates from the **VUR (Void User Repository)** — a concept similar to AUR Helper in Arch Linux.
 
 ## Table of Contents
 
 **For General Users**
-- [Let — User Documentation](#let--user-documentation)
+- [Let-X — User Documentation](#let-x--user-documentation)
   - [Table of Contents](#table-of-contents)
 - [For General Users](#for-general-users)
-  - [What is Let?](#what-is-let)
+  - [What is Let-X?](#what-is-let-x)
   - [System Requirements](#system-requirements)
   - [Installation](#installation)
     - [Method 1 — Automated Script (Recommended)](#method-1--automated-script-recommended)
     - [Method 2 — Installation via xbps-src (Official Package)](#method-2--installation-via-xbps-src-official-package)
   - [Command Reference](#command-reference)
-    - [`let search`](#let-search)
-    - [`let info`](#let-info)
-    - [`let list`](#let-list)
-    - [`let get`](#let-get)
-    - [`let update`](#let-update)
+    - [`letx search`](#letx-search)
+    - [`letx info`](#letx-info)
+    - [`letx list`](#letx-list)
+    - [`letx get`](#letx-get)
+    - [`letx update`](#letx-update)
   - [Usage Examples](#usage-examples)
     - [Typical Workflow](#typical-workflow)
     - [Explore Packages by Category](#explore-packages-by-category)
   - [Local File Structure](#local-file-structure)
   - [Troubleshooting](#troubleshooting)
-    - [`let: command not found`](#let-command-not-found)
+    - [`letx: command not found`](#letx-command-not-found)
     - [`Failed to fetch index from GitHub and no local cache available`](#failed-to-fetch-index-from-github-and-no-local-cache-available)
     - [`Package ‘xxx’ not found in VUR`](#package-xxx-not-found-in-vur)
     - [`Python >= 3.11 required`](#python--311-required)
@@ -32,11 +32,11 @@
 
 # For General Users
 
-## What is Let?
+## What is Let-X?
 
-**Let** is a CLI (Command Line Interface) tool that runs in the Void Linux terminal. Its functionality is similar to `yay` or `paru` in Arch Linux, but for the **VUR (Void User Repository)** ecosystem.
+**Let-X** is a CLI (Command Line Interface) tool that runs in the Void Linux terminal. Its functionality is similar to `yay` or `paru` in Arch Linux, but for the **VUR (Void User Repository)** ecosystem.
 
-With Let, you can:
+With Let-X, you can:
 - 🔍 **Search** for packages available in VUR
 - 📋 **View** a list of all packages
 - ℹ️ **View details** of a package
@@ -63,8 +63,8 @@ python3 --version
 
 ```bash
 # 1. Clone the Let repository
-git clone https://github.com/T4n-Labs/let
-cd let
+git clone https://github.com/T4n-Labs/Let-X
+cd Let-X
 
 # 2. Run the installation script as root
 sudo ./install.sh
@@ -85,22 +85,22 @@ let --help
 If you have already set up `void-packages`:
 ```bash
 # Copy the template to void-packages
-cp -r xbps-template/let ~/void-packages/srcpkgs/let
+cp -r xbps-template/template ~/void-packages/srcpkgs/letx
 
 # Build and install
 cd ~/void-packages
-./xbps-src pkg let
-sudo xbps-install --repository=hostdir/binpkgs let
+./xbps-src pkg letx
+sudo xbps-install --repository=hostdir/binpkgs letx
 ```
 
 ## Command Reference
 
-### `let search`
+### `letx search`
 
 Searches for packages in VUR based on a keyword.
 
 ```
-let search <keyword> [--category <category>]
+letx search <keyword> [--category <category>]
 ```
 
 | Argument / Option | Description |
@@ -111,13 +111,13 @@ let search <keyword> [--category <category>]
 **Example:**
 ```bash
 # Search for all packages containing the word “browser”
-let search browser
+letx search browser
 
 # Search only in the extra category
-let search browser --category extra
+letx search browser --category extra
 
 # Search using the shorthand -c
-let search discord -c extra
+letx search discord -c extra
 ```
 
 **Output:**
@@ -125,7 +125,7 @@ let search discord -c extra
 → Searching for ‘browser’ ...
 
 ╭──────────────────┬─────────┬──────────┬─────────────╮
-│ Name             │ Version   │ Category │ Maintainer  │
+│ Name             │ Version │ Category │ Maintainer  │
 ├──────────────────┼─────────┼──────────┼─────────────┤
 │ zen-browser      │ 1.19.8b │ extra    │ Naz         │
 │ firefox          │ 127.0   │ extra    │ Gh0sT4n     │
@@ -134,12 +134,12 @@ let search discord -c extra
   Total: 2 packages
 ```
 
-### `let info`
+### `letx info`
 
 Displays complete information about a package.
 
 ```
-let info <package-name>
+letx info <package-name>
 ```
 
 | Argument | Description |
@@ -148,18 +148,18 @@ let info <package-name>
 
 **Example:**
 ```bash
-let info discord
-let info wine
-let info zen-browser
+letx info discord
+letx info wine
+letx info zen-browser
 ```
 
 **Output:**
 ```
 ╭─────────────── discord ───────────────╮
 │ Name       : discord                  │
-│ Version   : 0.0.134                  │
-│ Category  : extra                    │
-│ Repo Path : extra/discord            │
+│ Version   : 0.0.134                   │
+│ Category  : extra                     │
+│ Repo Path : extra/discord             │
 │ Homepage   : https://discord.com      │
 │ Maintainer : Gh0sT4n                  │
 ╰───────────────────────────────────────╯
@@ -167,12 +167,12 @@ let info zen-browser
   Status     : ✘ Not yet fetched
 ```
 
-### `let list`
+### `letx list`
 
 Displays all packages available in VUR.
 
 ```
-let list [--category <category>]
+letx list [--category <category>]
 ```
 
 | Option | Description |
@@ -182,21 +182,21 @@ let list [--category <category>]
 **Example:**
 ```bash
 # Display all packages
-let list
+letx list
 
 # Display only packages in the multilib category
-let list --category multilib
+letx list --category multilib
 
 # Shorthand
-let list -c core
+letx list -c core
 ```
 
-### `let get`
+### `letx get`
 
 Downloads package templates from VUR to the local directory `~/.config/let/`.
 
 ```
-let get <package-name> [--force]
+letx get <package-name> [--force]
 ```
 
 | Argument / Option | Description |
@@ -207,13 +207,13 @@ let get <package-name> [--force]
 **Example:**
 ```bash
 # Download the Discord template
-let get discord
+letx get discord
 
 # Redownload (update the template)
-let get discord --force
+letx get discord --force
 
 # Shorthand force
-let get wine -f
+letx get wine -f
 ```
 
 **Output:**
@@ -225,17 +225,17 @@ let get wine -f
 → Next, you can build with xbps-src (coming soon).
 ```
 
-### `let update`
+### `letx update`
 
 Updates the VUR package index cache. Useful when new packages are added to VUR.
 
 ```
-let update
+letx update
 ```
 
 **Example:**
 ```bash
-let update
+letx update
 ```
 
 **Output:**
@@ -252,40 +252,40 @@ let update
 
 ```bash
 # 1. Update the index first (optional; can be skipped if newly installed)
-let update
+letx update
 
 # 2. Search for the package you want
-let search discord
+letx search discord
 
 # 3. Check package details
-let info discord
+letx info discord
 
 # 4. Download the template
-let get discord
+letx get discord
 
 # 5. The template is now located at:
-ls ~/.config/let/extra/discord/
+ls ~/.config/letx/extra/discord/
 ```
 
 ### Explore Packages by Category
 
 ```bash
 # View all core packages (basic system packages)
-let list --category core
+letx list --category core
 
 # View all multilib packages (for 32-bit compatibility / Wine)
-let list --category multilib
+letx list --category multilib
 
 # View all extra packages (third-party applications)
-let list --category extra
+letx list --category extra
 ```
 
 ## Local File Structure
 
-After using Let, the following files and directories are created on your system:
+After using Let-X, the following files and directories are created on your system:
 
 ```
-~/.config/let/              ← Main configuration directory
+~/.config/letx/              ← Main configuration directory
 ├── core/                   ← Templates from the core category
 │   └── <package-name>/
 │       ├── template        ← Main xbps-src template file
@@ -303,12 +303,12 @@ After using Let, the following files and directories are created on your system:
 
 ## Troubleshooting
 
-### `let: command not found`
+### `letx: command not found`
 
 The binary is not installed in the PATH. Try:
 ```bash
 # Check if the file exists
-ls -la /usr/bin/let
+ls -la /usr/bin/letx
 
 # If it’s not there, re-run the installation
 sudo ./install.sh
@@ -322,7 +322,7 @@ Let cannot connect to the internet and no local cache is available.
 ping github.com
 
 # If connected but still failing, try updating the index manually
-let update
+letx update
 ```
 
 ### `Package ‘xxx’ not found in VUR`
@@ -330,11 +330,11 @@ let update
 The package may not yet be in VUR, or the name was misspelled.
 ```bash
 # Search by partial name
-let search xxx
+letx search xxx
 
 # Update the index first; the package may have been recently added
-let update
-let search xxx
+letx update
+letx search xxx
 ```
 
 ### `Python >= 3.11 required`
@@ -353,14 +353,14 @@ sudo ./install.sh uninstall
 ```
 
 The script will remove:
-- `/usr/bin/let`
-- `/usr/lib/let/`
-- `/usr/share/let/`
-- `/usr/share/man/man1/let.1` (if present)
+- `/usr/bin/letx`
+- `/usr/lib/letx/`
+- `/usr/share/letx/`
+- `/usr/share/man/man1/letx.1` (if present)
 
 Cache data and local configuration are **not** automatically deleted. Delete manually if necessary:
 ```bash
-rm -rf ~/.config/let ~/.cache/let
+rm -rf ~/.config/letx ~/.cache/letx
 ```
 
 ---

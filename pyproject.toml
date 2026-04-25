@@ -7,7 +7,7 @@ name        = "letx"
 version     = "0.1.0"
 description = "Let-X — VUR Helper for Void Linux"
 readme      = "README.md"
-license     = { text = "MIT" }
+license     = { text = "BSD-2-Clause" }
 requires-python = ">=3.11"
 
 dependencies = [

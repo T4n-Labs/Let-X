@@ -1,11 +1,11 @@
-# Let — Dokumentasi untuk User
+# Let-X — Dokumentasi untuk User
 
-> **Let** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengambilan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
+> **Let-X** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengambilan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
 
 ## Daftar Isi
 
 **Untuk Pengguna Umum**
-- [Apa itu Let?](#apa-itu-let)
+- [Apa itu Let-X?](#apa-itu-let-x)
 - [Persyaratan Sistem](#persyaratan-sistem)
 - [Instalasi](#instalasi)
 - [Referensi Command](#referensi-command)
@@ -16,11 +16,11 @@
 
 # Untuk Pengguna Umum
 
-## Apa itu Let?
+## Apa itu Let-X?
 
-**Let** adalah tool CLI (Command Line Interface) yang berjalan di terminal Void Linux. Fungsinya mirip dengan `yay` atau `paru` di Arch Linux, tetapi untuk ekosistem **VUR (Void User Repository)**.
+**Let-X** adalah tool CLI (Command Line Interface) yang berjalan di terminal Void Linux. Fungsinya mirip dengan `yay` atau `paru` di Arch Linux, tetapi untuk ekosistem **VUR (Void User Repository)**.
 
-Dengan Let kamu bisa:
+Dengan Let-X kamu bisa:
 - 🔍 **Mencari** package yang tersedia di VUR
 - 📋 **Melihat** daftar semua package
 - ℹ️ **Melihat detail** informasi sebuah package
@@ -46,8 +46,8 @@ python3 --version
 ### Metode 1 — Script Otomatis (Direkomendasikan)
 
 ```bash
-# 1. Clone repo Let
-git clone https://github.com/T4n-Labs/let
+# 1. Clone repo Let-X
+git clone https://github.com/T4n-Labs/Let-X
 cd let
 
 # 2. Jalankan script instalasi sebagai root
@@ -55,13 +55,13 @@ sudo ./install.sh
 ```
 
 Script ini akan secara otomatis:
-- Menyalin source ke `/usr/lib/let/`
-- Menginstall dependensi Python (`typer`, `httpx`, `rich`) ke `/usr/lib/let/`
-- Membuat binary wrapper di `/usr/bin/let`
+- Menyalin source ke `/usr/lib/letx/`
+- Menginstall dependensi Python (`typer`, `httpx`, `rich`) ke `/usr/lib/letx/`
+- Membuat binary wrapper di `/usr/bin/letx`
 
 Setelah selesai, cek instalasi:
 ```bash
-let --help
+letx --help
 ```
 
 ### Metode 2 — Instalasi via xbps-src (Paket Resmi)
@@ -69,22 +69,22 @@ let --help
 Jika kamu sudah setup `void-packages`:
 ```bash
 # Salin template ke void-packages
-cp -r xbps-template/let ~/void-packages/srcpkgs/let
+cp -r xbps-template/template ~/void-packages/srcpkgs/letx
 
 # Build dan install
 cd ~/void-packages
-./xbps-src pkg let
-sudo xbps-install --repository=hostdir/binpkgs let
+./xbps-src pkg letx
+sudo xbps-install --repository=hostdir/binpkgs letx
 ```
 
 ## Referensi Command
 
-### `let search`
+### `letx search`
 
 Mencari package di VUR berdasarkan kata kunci.
 
 ```
-let search <keyword> [--category <kategori>]
+letx search <keyword> [--category <kategori>]
 ```
 
 | Argumen / Opsi | Keterangan |
@@ -95,13 +95,13 @@ let search <keyword> [--category <kategori>]
 **Contoh:**
 ```bash
 # Cari semua package yang mengandung kata "browser"
-let search browser
+letx search browser
 
 # Cari hanya di kategori extra
-let search browser --category extra
+letx search browser --category extra
 
 # Cari dengan shorthand -c
-let search discord -c extra
+letx search discord -c extra
 ```
 
 **Output:**
@@ -118,12 +118,12 @@ let search discord -c extra
   Total: 2 package
 ```
 
-### `let info`
+### `letx info`
 
 Menampilkan informasi lengkap sebuah package.
 
 ```
-let info <nama-package>
+letx info <nama-package>
 ```
 
 | Argumen | Keterangan |
@@ -132,9 +132,9 @@ let info <nama-package>
 
 **Contoh:**
 ```bash
-let info discord
-let info wine
-let info zen-browser
+letx info discord
+letx info wine
+letx info zen-browser
 ```
 
 **Output:**
@@ -151,12 +151,12 @@ let info zen-browser
   Status     : ✘ Belum di-get
 ```
 
-### `let list`
+### `letx list`
 
 Menampilkan semua package yang tersedia di VUR.
 
 ```
-let list [--category <kategori>]
+letx list [--category <kategori>]
 ```
 
 | Opsi | Keterangan |
@@ -166,13 +166,13 @@ let list [--category <kategori>]
 **Contoh:**
 ```bash
 # Tampilkan semua package
-let list
+letx list
 
 # Hanya tampilkan package di kategori multilib
-let list --category multilib
+letx list --category multilib
 
 # Shorthand
-let list -c core
+letx list -c core
 ```
 
 ### `let get`
@@ -180,7 +180,7 @@ let list -c core
 Mengunduh template package dari VUR ke direktori lokal `~/.config/let/`.
 
 ```
-let get <nama-package> [--force]
+letx get <nama-package> [--force]
 ```
 
 | Argumen / Opsi | Keterangan |
@@ -191,13 +191,13 @@ let get <nama-package> [--force]
 **Contoh:**
 ```bash
 # Download template discord
-let get discord
+letx get discord
 
 # Download ulang (update template)
-let get discord --force
+letx get discord --force
 
 # Shorthand force
-let get wine -f
+letx get wine -f
 ```
 
 **Output:**
@@ -209,17 +209,17 @@ let get wine -f
 → Selanjutnya kamu bisa build dengan xbps-src (coming soon).
 ```
 
-### `let update`
+### `letx update`
 
 Memperbarui cache index package dari VUR. Berguna jika ada package baru yang ditambahkan ke VUR.
 
 ```
-let update
+letx update
 ```
 
 **Contoh:**
 ```bash
-let update
+letx update
 ```
 
 **Output:**
@@ -236,40 +236,40 @@ let update
 
 ```bash
 # 1. Perbarui index dulu (opsional, bisa skip jika baru install)
-let update
+letx update
 
 # 2. Cari package yang kamu inginkan
-let search discord
+letx search discord
 
 # 3. Cek detail package
-let info discord
+letx info discord
 
 # 4. Download templatenya
-let get discord
+letx get discord
 
 # 5. Template sekarang ada di:
-ls ~/.config/let/extra/discord/
+ls ~/.config/letx/extra/discord/
 ```
 
 ### Eksplorasi Package Berdasarkan Kategori
 
 ```bash
 # Lihat semua package core (package sistem dasar)
-let list --category core
+letx list --category core
 
 # Lihat semua package multilib (untuk kompatibilitas 32-bit / Wine)
-let list --category multilib
+letx list --category multilib
 
 # Lihat semua package extra (aplikasi pihak ketiga)
-let list --category extra
+letx list --category extra
 ```
 
 ## Struktur File Lokal
 
-Setelah menggunakan Let, berikut file dan direktori yang dibuat di sistem kamu:
+Setelah menggunakan Let-X, berikut file dan direktori yang dibuat di sistem kamu:
 
 ```
-~/.config/let/              ← Direktori utama konfigurasi
+~/.config/letx/              ← Direktori utama konfigurasi
 ├── core/                   ← Template dari kategori core
 │   └── <nama-package>/
 │       ├── template        ← File template utama xbps-src
@@ -287,12 +287,12 @@ Setelah menggunakan Let, berikut file dan direktori yang dibuat di sistem kamu:
 
 ## Troubleshooting
 
-### `let: command not found`
+### `letx: command not found`
 
 Binary tidak terpasang di PATH. Coba:
 ```bash
 # Cek apakah file ada
-ls -la /usr/bin/let
+ls -la /usr/bin/letx
 
 # Jika tidak ada, jalankan ulang instalasi
 sudo ./install.sh
@@ -300,13 +300,13 @@ sudo ./install.sh
 
 ### `Gagal fetch index dari GitHub dan tidak ada cache lokal`
 
-Let tidak bisa terhubung ke internet dan tidak ada cache lokal tersedia.
+Letx tidak bisa terhubung ke internet dan tidak ada cache lokal tersedia.
 ```bash
 # Cek koneksi internet
 ping github.com
 
 # Jika terhubung tapi masih gagal, coba perbarui index secara manual
-let update
+letx update
 ```
 
 ### `Package 'xxx' tidak ditemukan di VUR`
@@ -314,11 +314,11 @@ let update
 Kemungkinan package belum ada di VUR, atau nama salah ketik.
 ```bash
 # Cari dengan nama parsial
-let search xxx
+letx search xxx
 
 # Perbarui index dulu, mungkin package baru ditambahkan
-let update
-let search xxx
+letx update
+lext search xxx
 ```
 
 ### `Python >= 3.11 diperlukan`
@@ -337,14 +337,14 @@ sudo ./install.sh uninstall
 ```
 
 Script akan menghapus:
-- `/usr/bin/let`
-- `/usr/lib/let/`
-- `/usr/share/let/`
-- `/usr/share/man/man1/let.1` (jika ada)
+- `/usr/bin/letx`
+- `/usr/lib/letx/`
+- `/usr/share/letx/`
+- `/usr/share/man/man1/letx.1` (jika ada)
 
 Data cache dan konfigurasi lokal **tidak** dihapus otomatis. Hapus manual jika diperlukan:
 ```bash
-rm -rf ~/.config/let ~/.cache/let
+rm -rf ~/.config/let ~/.cache/letx
 ```
 
 ---

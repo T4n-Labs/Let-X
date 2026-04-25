@@ -1,23 +1,47 @@
-# Let — Dokumentasi Untuk Developer
+# Let-X — Dokumentasi Untuk Developer
 
-> **Let** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengambilan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
+> **Let-X** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengambilan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
 
 ## Daftar Isi
 **Untuk Developer**
-- [Arsitektur Proyek](#arsitektur-proyek)
-- [Struktur Direktori](#struktur-direktori)
-- [Penjelasan Modul](#penjelasan-modul)
-- [Alur Data](#alur-data)
-- [Cara Berkontribusi](#cara-berkontribusi)
-- [Menjalankan Test](#menjalankan-test)
-- [Build Package xbps-src](#build-package-xbps-src)
-- [Roadmap](#roadmap)
+- [Let-X — Dokumentasi Untuk Developer](#let-x--dokumentasi-untuk-developer)
+  - [Daftar Isi](#daftar-isi)
+- [Untuk Developer](#untuk-developer)
+  - [Arsitektur Proyek](#arsitektur-proyek)
+  - [Struktur Direktori](#struktur-direktori)
+  - [Penjelasan Modul](#penjelasan-modul)
+    - [`config.py`](#configpy)
+    - [`repo/index.py`](#repoindexpy)
+    - [`repo/fetch.py`](#repofetchpy)
+    - [`ops/search.py`](#opssearchpy)
+    - [`ops/info.py`](#opsinfopy)
+    - [`utils/print.py`](#utilsprintpy)
+  - [Alur Data](#alur-data)
+    - [`letx search <keyword>`](#letx-search-keyword)
+    - [`letx get <package>`](#letx-get-package)
+  - [Cara Berkontribusi](#cara-berkontribusi)
+    - [Setup Development Environment](#setup-development-environment)
+    - [Konvensi Kode](#konvensi-kode)
+    - [Menambah Command Baru](#menambah-command-baru)
+  - [Menjalankan Test](#menjalankan-test)
+  - [Build Package xbps-src](#build-package-xbps-src)
+    - [Persiapan](#persiapan)
+    - [Update Checksum (Wajib Setiap Rilis)](#update-checksum-wajib-setiap-rilis)
+    - [Build dan Test](#build-dan-test)
+    - [Checklist Sebelum Submit ke Void Packages](#checklist-sebelum-submit-ke-void-packages)
+  - [Roadmap](#roadmap)
+    - [v0.1.0 — Fase Dasar](#v010--fase-dasar)
+    - [v0.2.0 — Integrasi xbps-src](#v020--integrasi-xbps-src)
+    - [v0.3.0 — Instalasi Penuh](#v030--instalasi-penuh)
+    - [v1.0.0 — Fitur Lanjutan](#v100--fitur-lanjutan)
+  - [Dependensi](#dependensi)
+  - [Lisensi](#lisensi)
 
 # Untuk Developer
 
 ## Arsitektur Proyek
 
-Let dibangun dengan filosofi **separation of concerns** — setiap lapisan punya tanggung jawab yang jelas dan berdiri sendiri:
+Let-X dibangun dengan filosofi **separation of concerns** — setiap lapisan punya tanggung jawab yang jelas dan berdiri sendiri:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -42,8 +66,8 @@ Let dibangun dengan filosofi **separation of concerns** — setiap lapisan punya
 ## Struktur Direktori
 
 ```
-let/                            ← Root proyek
-├── let/                        ← Package Python utama
+Let-X/                          ← Root proyek
+├── letx/                       ← Package Python utama
 │   ├── __init__.py             ← Versi app (APP_VERSION)
 │   ├── cli.py                  ← Entry point CLI (Typer)
 │   ├── config.py               ← Semua konstanta & path
@@ -70,7 +94,14 @@ let/                            ← Root proyek
 │   ├── let/
 │   │   └── template            ← Template file xbps-src
 │   └── README.md               ← Panduan build via xbps-src
-│
+├── vdocs                       ← Dokumentasi Let-X
+│   ├── docs.md
+│   ├── EN
+│   │   ├── dev.md
+│   │   └── user.md
+│   └── ID
+│       ├── dev.md
+│       └── user.md
 ├── install.sh                  ← Script instalasi bash
 ├── pyproject.toml              ← Konfigurasi proyek & dependensi
 └── README.md                   ← Overview singkat
@@ -89,8 +120,8 @@ VUR_API_BASE = "https://api.github.com/repos/T4n-Labs/vur/contents"
 PACKAGES_URL = "https://raw.githubusercontent.com/T4n-Labs/vur/main/packages.json"
 
 # Path lokal
-CONFIG_DIR = Path.home() / ".config" / "let"
-CACHE_DIR  = Path.home() / ".cache" / "let"
+CONFIG_DIR = Path.home() / ".config" / "letx"
+CACHE_DIR  = Path.home() / ".cache" / "letx"
 TEMPLATE_DIRS = {
     "core":     CONFIG_DIR / "core",
     "extra":    CONFIG_DIR / "extra",
@@ -226,7 +257,7 @@ C_LOCAL = "bold green"   # status tersedia lokal
 
 Berikut alur lengkap untuk setiap command:
 
-### `let search <keyword>`
+### `letx search <keyword>`
 
 ```
 cli.py:cmd_search(keyword)
@@ -244,7 +275,7 @@ cli.py:cmd_search(keyword)
     └─► utils/print.py:print_package_table(results)
 ```
 
-### `let get <package>`
+### `letx get <package>`
 
 ```
 cli.py:cmd_get(name)
@@ -269,8 +300,8 @@ cli.py:cmd_get(name)
 
 ```bash
 # 1. Fork dan clone repo
-git clone https://github.com/<username>/let
-cd let
+git clone https://github.com/<username>/Let-X
+cd Let-X
 
 # 2. Buat virtual environment
 python3 -m venv .venv
@@ -280,7 +311,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 
 # 4. Verifikasi instalasi
-let --help
+letx --help
 pytest tests/ -v
 ```
 
@@ -302,8 +333,8 @@ import httpx
 from rich.console import Console
 
 # 3. internal (absolute imports)
-from let.config import CACHE_DIR
-from let.repo.index import fetch_index
+from letx.config import CACHE_DIR
+from letx.repo.index import fetch_index
 ```
 
 **Docstring:** Semua fungsi publik wajib punya docstring yang menjelaskan args, return, dan exceptions.
@@ -403,7 +434,8 @@ cd ~/void-packages
 ./xbps-src binary-bootstrap
 
 # Copy template
-cp -r /path/to/let/xbps-template/let srcpkgs/let
+mkdir srcpkgs/letx/
+cp /path/to/Let-X/xbps-template/template srcpkgs/letx/
 ```
 
 ### Update Checksum (Wajib Setiap Rilis)
@@ -411,7 +443,7 @@ cp -r /path/to/let/xbps-template/let srcpkgs/let
 ```bash
 # Setelah membuat GitHub Release dengan tag vX.Y.Z
 cd ~/void-packages
-./xbps-src fetch let
+./xbps-src fetch letx
 sha256sum $XBPS_SRCDISTDIR/let-X.Y.Z.tar.gz
 # → salin hash ke field 'checksum' di srcpkgs/let/template
 ```
@@ -422,17 +454,17 @@ sha256sum $XBPS_SRCDISTDIR/let-X.Y.Z.tar.gz
 cd ~/void-packages
 
 # Build
-./xbps-src pkg let
+./xbps-src pkg letx
 
 # Cek isi package
-./xbps-src show-files let
+./xbps-src show-files letx
 
 # Install lokal untuk test
-sudo xbps-install --repository=hostdir/binpkgs let
+sudo xbps-install --repository=hostdir/binpkgs letx
 
 # Verifikasi
-let --help
-let search discord
+letx --help
+letx search discord
 ```
 
 ### Checklist Sebelum Submit ke Void Packages
@@ -441,41 +473,41 @@ let search discord
 - [ ] `revision` di-reset ke `1` jika `version` berubah
 - [ ] `revision` dinaikkan jika hanya template yang berubah (versi sama)
 - [ ] Semua dependensi Python (`python3-httpx`, `python3-rich`, `python3-typer`) tersedia di void-packages
-- [ ] `./xbps-src pkg let` berhasil tanpa error
-- [ ] `./xbps-src show-files let` menunjukkan `/usr/bin/let` ada di output
-- [ ] Test manual: `let search`, `let info`, `let list`, `let get` berfungsi
+- [ ] `./xbps-src pkg letx` berhasil tanpa error
+- [ ] `./xbps-src show-files letx` menunjukkan `/usr/bin/letx` ada di output
+- [ ] Test manual: `letx search`, `letx info`, `letx list`, `letx get` berfungsi
 
 ## Roadmap
 
-### v0.1.0 — Fase Dasar ✅
-- [x] `let search` — pencarian package
-- [x] `let info` — detail package
-- [x] `let list` — daftar semua package
-- [x] `let list --category` — filter by kategori
-- [x] `let get` — download template lokal
-- [x] `let update` — refresh cache index
+### v0.1.0 — Fase Dasar
+- [x] `letx search` — pencarian package
+- [x] `letx info` — detail package
+- [x] `letx list` — daftar semua package
+- [x] `letx list --category` — filter by kategori
+- [x] `letx get` — download template lokal
+- [x] `letx update` — refresh cache index
 - [x] Cache lokal dengan TTL 1 jam
 - [x] Graceful degradation saat offline (pakai cache lama)
 - [x] Script instalasi bash
 - [x] Template xbps-src
 
-### v0.2.0 — Integrasi xbps-src 🔜
-- [ ] `let build <package>` — build via `xbps-src pkg`
+### v0.2.0 — Integrasi xbps-src
+- [ ] `letx build <package>` — build via `xbps-src pkg`
 - [ ] Auto-setup symlink ke `void-packages/srcpkgs/`
 - [ ] Deteksi dan konfigurasi `void-packages` directory
 - [ ] Progress build output real-time
 
-### v0.3.0 — Instalasi Penuh 🔜
-- [ ] `let install <package>` — build + install via `xbps-install`
-- [ ] `let remove <package>` — hapus template lokal
+### v0.3.0 — Instalasi Penuh
+- [ ] `letx install <package>` — build + install via `xbps-install`
+- [ ] `letx remove <package>` — hapus template lokal
 - [ ] Manajemen dependensi antar package VUR
 
 ### v1.0.0 — Fitur Lanjutan
-- [ ] `let upgrade` — update semua template yang sudah di-get
+- [ ] `letx upgrade` — update semua template yang sudah di-get
 - [ ] Offline mode penuh
-- [ ] Konfigurasi user via `~/.config/let/config.toml`
+- [ ] Konfigurasi user via `~/.config/letx/config.toml`
 - [ ] Shell completion (bash, zsh, fish)
-- [ ] Man page (`let.1`)
+- [ ] Man page (`letx.1`)
 
 ## Dependensi
 
@@ -493,7 +525,7 @@ let search discord
 
 ## Lisensi
 
-Let dirilis di bawah lisensi **MIT**. Lihat file `LICENSE` untuk detail lengkap.
+Let dirilis di bawah lisensi **BSD 2-Clause**. Lihat file `LICENSE` untuk detail lengkap.
 
 *Dokumentasi ini dibuat untuk Let v0.1.0*
 *VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*

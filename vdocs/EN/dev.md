@@ -1,10 +1,10 @@
-# Let — Documentation for Developers
+# Let-X — Documentation for Developers
 
-> **Let** is a CLI tool for Void Linux that makes it easy to search for, manage, and retrieve package templates from the **VUR (Void User Repository)** — a concept similar to AUR Helper in Arch Linux.
+> **Let-X** is a CLI tool for Void Linux that makes it easy to search for, manage, and retrieve package templates from the **VUR (Void User Repository)** — a concept similar to AUR Helper in Arch Linux.
 
 ## Table of Contents
 **For Developers**
-- [Let — Documentation for Developers](#let--documentation-for-developers)
+- [Let-X — Documentation for Developers](#let-x--documentation-for-developers)
   - [Table of Contents](#table-of-contents)
 - [For Developers](#for-developers)
   - [Project Architecture](#project-architecture)
@@ -30,9 +30,9 @@
     - [Build and Test](#build-and-test)
     - [Checklist Before Submitting to Void Packages](#checklist-before-submitting-to-void-packages)
   - [Roadmap](#roadmap)
-    - [v0.1.0 — Basic Phase ✅](#v010--basic-phase-)
-    - [v0.2.0 — xbps-src Integration 🔜](#v020--xbps-src-integration-)
-    - [v0.3.0 — Full Installation 🔜](#v030--full-installation-)
+    - [v0.1.0 — Basic Phase](#v010--basic-phase)
+    - [v0.2.0 — xbps-src Integration](#v020--xbps-src-integration)
+    - [v0.3.0 — Full Installation](#v030--full-installation)
     - [v1.0.0 — Advanced Features](#v100--advanced-features)
   - [Dependencies](#dependencies)
   - [License](#license)
@@ -41,7 +41,7 @@
 
 ## Project Architecture
 
-Let is built on the philosophy of **separation of concerns** — each layer has clear, independent responsibilities:
+Let-X is built on the philosophy of **separation of concerns** — each layer has clear, independent responsibilities:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -66,8 +66,8 @@ Let is built on the philosophy of **separation of concerns** — each layer has 
 ## Directory Structure
 
 ```
-let/                            ← Project root
-├── let/                        ← Main Python package
+Let-X/                            ← Project root
+├── letx/                        ← Main Python package
 │   ├── __init__.py             ← App version (APP_VERSION)
 │   ├── cli.py                  ← CLI entry point (Typer)
 │   ├── config.py               ← All constants & paths
@@ -108,17 +108,17 @@ The only file that defines all global constants. **It must not be imported by ot
 
 ```python
 # Remote URL
-VUR_REPO     = “T4n-Labs/vur”
-VUR_API_BASE = “https://api.github.com/repos/T4n-Labs/vur/contents”
-PACKAGES_URL = “https://raw.githubusercontent.com/T4n-Labs/vur/main/packages.json”
+VUR_REPO     = "T4n-Labs/vur"
+VUR_API_BASE = "https://api.github.com/repos/T4n-Labs/vur/contents"
+PACKAGES_URL = "https://raw.githubusercontent.com/T4n-Labs/vur/main/packages.json"
 
 # Local path
-CONFIG_DIR = Path.home() / “.config” / ‘let’
-CACHE_DIR  = Path.home() / “.cache” / “let”
+CONFIG_DIR = Path.home() / ".config" / "letx"
+CACHE_DIR  = Path.home() / ".cache" / "letx"
 TEMPLATE_DIRS = {
-    “core”:     CONFIG_DIR / “core”,
-    “extra”:    CONFIG_DIR / “extra”,
-    “multilib”: CONFIG_DIR / “multilib”,
+    "core":     CONFIG_DIR / "core",
+    "extra":    CONFIG_DIR / "extra",
+    "multilib": CONFIG_DIR / "multilib",
 }
 
 CACHE_TTL = 3600  # seconds (1 hour)
@@ -293,8 +293,8 @@ cli.py:cmd_get(name)
 
 ```bash
 # 1. Fork and clone the repo
-git clone https://github.com/<username>/let
-cd let
+git clone https://github.com/<username>/Let-X
+cd Let-X
 
 # 2. Create a virtual environment
 python3 -m venv .venv
@@ -304,7 +304,7 @@ source .venv/bin/activate
 pip install -e “.[dev]”
 
 # 4. Verify the installation
-let --help
+letx --help
 pytest tests/ -v
 ```
 
@@ -326,8 +326,8 @@ import httpx
 from rich.console import Console
 
 # 3. internal (absolute imports)
-from let.config import CACHE_DIR
-from let.repo.index import fetch_index
+from letx.config import CACHE_DIR
+from letx.repo.index import fetch_index
 ```
 
 **Docstring:** All public functions must have a docstring explaining their arguments, return values, and exceptions.
@@ -427,7 +427,8 @@ cd ~/void-packages
 ./xbps-src binary-bootstrap
 
 # Copy template
-cp -r /path/to/let/xbps-template/let srcpkgs/let
+mkdir srcpkgs/letx/
+cp /path/to/Let-X/xbps-template/template srcpkgs/letx/
 ```
 
 ### Update Checksum (Required for Every Release)
@@ -435,7 +436,7 @@ cp -r /path/to/let/xbps-template/let srcpkgs/let
 ```bash
 # After creating a GitHub Release with tag vX.Y.Z
 cd ~/void-packages
-./xbps-src fetch let
+./xbps-src fetch letx
 sha256sum $XBPS_SRCDISTDIR/let-X.Y.Z.tar.gz
 # → Copy the hash to the ‘checksum’ field in srcpkgs/let/template
 ```
@@ -446,17 +447,17 @@ sha256sum $XBPS_SRCDISTDIR/let-X.Y.Z.tar.gz
 cd ~/void-packages
 
 # Build
-./xbps-src pkg let
+./xbps-src pkg letx
 
 # Check package contents
-./xbps-src show-files let
+./xbps-src show-files letx
 
 # Install locally for testing
-sudo xbps-install --repository=hostdir/binpkgs let
+sudo xbps-install --repository=hostdir/binpkgs letx
 
 # Verify
-let --help
-let search discord
+letx --help
+letx search discord
 ```
 
 ### Checklist Before Submitting to Void Packages
@@ -465,41 +466,41 @@ let search discord
 - [ ] `revision` is reset to `1` if `version` changes
 - [ ] `revision` is incremented if only the template has changed (same version)
 - [ ] All Python dependencies (`python3-httpx`, `python3-rich`, `python3-typer`) are available in void-packages
-- [ ] `./xbps-src pkg let` succeeds without errors
-- [ ] `./xbps-src show-files let` shows `/usr/bin/let` in the output
-- [ ] Manual test: `let search`, `let info`, `let list`, `let get` work
+- [ ] `./xbps-src pkg letx` succeeds without errors
+- [ ] `./xbps-src show-files letx` shows `/usr/bin/letx` in the output
+- [ ] Manual test: `letx search`, `letx info`, `letx list`, `letx get` work
 
 ## Roadmap
 
-### v0.1.0 — Basic Phase ✅
-- [x] `let search` — package search
-- [x] `let info` — package details
-- [x] `let list` — list all packages
-- [x] `let list --category` — filter by category
-- [x] `let get` — download local template
-- [x] `let update` — refresh index cache
+### v0.1.0 — Basic Phase
+- [x] `letx search` — package search
+- [x] `letx info` — package details
+- [x] `letx list` — list all packages
+- [x] `letx list --category` — filter by category
+- [x] `letx get` — download local template
+- [x] `letx update` — refresh index cache
 - [x] Local cache with 1-hour TTL
 - [x] Graceful degradation when offline (uses old cache)
 - [x] Bash installation script
 - [x] xbps-src template
 
-### v0.2.0 — xbps-src Integration 🔜
-- [ ] `let build <package>` — build via `xbps-src pkg`
+### v0.2.0 — xbps-src Integration
+- [ ] `letx build <package>` — build via `xbps-src pkg`
 - [ ] Auto-setup symlink to `void-packages/srcpkgs/`
 - [ ] Detection and configuration of the `void-packages` directory
 - [ ] Real-time build progress output
 
-### v0.3.0 — Full Installation 🔜
-- [ ] `let install <package>` — build + install via `xbps-install`
-- [ ] `let remove <package>` — remove local template
+### v0.3.0 — Full Installation
+- [ ] `letx install <package>` — build + install via `xbps-install`
+- [ ] `letx remove <package>` — remove local template
 - [ ] Dependency management between VUR packages
 
 ### v1.0.0 — Advanced Features
-- [ ] `let upgrade` — update all templates that have been fetched
+- [ ] `letx upgrade` — update all templates that have been fetched
 - [ ] Full offline mode
-- [ ] User configuration via `~/.config/let/config.toml`
+- [ ] User configuration via `~/.config/letx/config.toml`
 - [ ] Shell completion (bash, zsh, fish)
-- [ ] Man page (`let.1`)
+- [ ] Man page (`letx.1`)
 
 ## Dependencies
 
@@ -517,7 +518,7 @@ let search discord
 
 ## License
 
-Let is released under the **MIT** license. See the `LICENSE` file for full details.
+Let is released under the **BSD 2-Clause** license. See the `LICENSE` file for full details.
 
 *This documentation is for Let v0.1.0*
 *VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*
