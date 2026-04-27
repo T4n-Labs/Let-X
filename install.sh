@@ -34,9 +34,23 @@ warn()    { echo -e "${YLW}!${RST} $*"; }
 error()   { echo -e "${RED}✘${RST} $*" >&2; }
 die()     { error "$*"; exit 1; }
 
+# ─── Banner Information ────────────────────────────────────────
+usage() {
+	echo -e ""
+    echo -e "${GRN}Usage${RST}: sudo ./install.sh [OPTION]"
+    echo -e "${RED}Default${RST}: install (if no option given)"
+    echo -e ""
+    echo -e "${GRN}Options:${RST}"
+    echo -e "  install    - Install Let-X (default)"
+    echo -e "  reinstall  - Uninstall then reinstall Let-X"
+    echo -e "  uninstall  - Completely remove Let-X and all its files"
+    echo -e ""
+}
+
 # ─── Check for root access ────────────────────────────────────────
 check_root() {
     if [[ "${EUID}" -ne 0 ]]; then
+		usage
         die "This script must be run as root: sudo ./install.sh"
     fi
 }
@@ -133,7 +147,7 @@ do_build() {
 do_install_wheel() {
     info "Installing wheel to ${INSTALL_PREFIX} ..."
 
-    if [[ -d "${LIB_DIR}" ]]; then
+   if [[ -d "${LIB_DIR}" ]]; then
         warn "Removing old installation at ${LIB_DIR} ..."
         rm -rf "${LIB_DIR}"
     fi
@@ -233,34 +247,79 @@ do_uninstall() {
 
     local removed=0
 
+    # 1. Hapus binary wrapper
     if [[ -f "${BIN_DIR}/${APP_NAME}" ]]; then
         rm -f "${BIN_DIR}/${APP_NAME}"
         success "Deleted: ${BIN_DIR}/${APP_NAME}"
         ((removed++))
     fi
 
+    # 2. Hapus direktori dependencies (dari do_install_deps)
     if [[ -d "${LIB_DIR}" ]]; then
         rm -rf "${LIB_DIR}"
         success "Deleted: ${LIB_DIR}"
         ((removed++))
     fi
 
+    # 3. Hapus direktori share (manifest)
     if [[ -d "${SHARE_DIR}" ]]; then
         rm -rf "${SHARE_DIR}"
         success "Deleted: ${SHARE_DIR}"
         ((removed++))
     fi
 
+    # 4. Hapus man page
     if [[ -f "${MAN_DIR}/letx.1" ]]; then
         rm -f "${MAN_DIR}/letx.1"
         success "Deleted: ${MAN_DIR}/letx.1"
         ((removed++))
     fi
 
-    # Bersihkan build directory sisa jika ada
+    # 5. Hapus build directory sisa (jika ada)
     if [[ -d "${BUILD_DIR}" ]]; then
         rm -rf "${BUILD_DIR}"
         success "Deleted leftover: ${BUILD_DIR}"
+        ((removed++))
+    fi
+
+    # 6. Hapus module utama dari site-packages (instalasi wheel normal)
+    local site_packages
+    site_packages=$(python3 -c "import site; print(site.getsitepackages()[0])" 2>/dev/null)
+    if [[ -n "${site_packages}" ]]; then
+        if [[ -d "${site_packages}/${APP_NAME}" ]]; then
+            rm -rf "${site_packages}/${APP_NAME}"
+            success "Deleted: ${site_packages}/${APP_NAME}"
+            ((removed++))
+        fi
+        # Hapus direktori dist-info (misal letx-0.1.1.dist-info)
+        local dist_info="${site_packages}/${APP_NAME}-"*.dist-info
+        if compgen -G "${dist_info}" > /dev/null; then
+            rm -rf ${dist_info}
+            success "Deleted: ${site_packages}/${APP_NAME}-*.dist-info"
+            ((removed++))
+        fi
+    fi
+
+    # 7. Hapus kemungkinan instalasi user (--user) – opsional
+    local user_site=$(python3 -c "import site; print(site.getusersitepackages())" 2>/dev/null)
+    if [[ -n "${user_site}" ]]; then
+        if [[ -d "${user_site}/${APP_NAME}" ]]; then
+            rm -rf "${user_site}/${APP_NAME}"
+            success "Deleted (user): ${user_site}/${APP_NAME}"
+            ((removed++))
+        fi
+        local user_dist_info="${user_site}/${APP_NAME}-"*.dist-info
+        if compgen -G "${user_dist_info}" > /dev/null; then
+            rm -rf ${user_dist_info}
+            success "Deleted (user): ${user_site}/${APP_NAME}-*.dist-info"
+            ((removed++))
+        fi
+    fi
+
+    # 8. Hapus cache pip (opsional, cukup bersihkan yang terkait Let-X)
+    if [[ -d /root/.cache/pip/wheels ]]; then
+        find /root/.cache/pip/wheels -name "${APP_NAME}-*.whl" -delete 2>/dev/null && \
+            success "Deleted pip cache for ${APP_NAME}"
     fi
 
     if [[ "${removed}" -eq 0 ]]; then
@@ -301,13 +360,19 @@ do_install() {
 case "${1:-install}" in
     install)
         do_install
+        usage
+        ;;
+    reinstall)
+        check_root
+        do_uninstall
+        do_install
         ;;
     uninstall)
         check_root
         do_uninstall
         ;;
     *)
-        echo "Usage: sudo ./install.sh [install|uninstall]"
+        usage
         exit 1
         ;;
 esac
