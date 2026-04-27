@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────
-# install.sh — Let-X installation script to /usr/bin/ (Void Linux)
+# install.sh — Let-X installation script
 # Usage:
 #   sudo ./install.sh            → install
 #   sudo ./install.sh uninstall  → uninstall
@@ -9,15 +9,16 @@
 set -euo pipefail
 
 # ─── Konstanta ────────────────────────────────────────────────────
-APP_NAME="letx"         # Binary name: /usr/bin/letx
-PKG_NAME="letx"         # Python package name
-APP_VERSION="0.1.0"
+APP_NAME="letx"
+PKG_NAME="letx"
+APP_VERSION="0.1.1"
 INSTALL_PREFIX="/usr"
 BIN_DIR="${INSTALL_PREFIX}/bin"
 LIB_DIR="${INSTALL_PREFIX}/lib/${APP_NAME}"
 SHARE_DIR="${INSTALL_PREFIX}/share/${APP_NAME}"
 MAN_DIR="${INSTALL_PREFIX}/share/man/man1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_DIR="/tmp/letx-build-${APP_VERSION}"
 
 # ─── Warna output ─────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -33,14 +34,14 @@ warn()    { echo -e "${YLW}!${RST} $*"; }
 error()   { echo -e "${RED}✘${RST} $*" >&2; }
 die()     { error "$*"; exit 1; }
 
-# ─── Check for root access ─────────────────────────────────────────────────────
+# ─── Check for root access ────────────────────────────────────────
 check_root() {
     if [[ "${EUID}" -ne 0 ]]; then
         die "This script must be run as root: sudo ./install.sh"
     fi
 }
 
-# ─── Check system dependencies ────────────────────────────────────────
+# ─── Check system dependencies ────────────────────────────────────
 check_deps() {
     local missing=()
     local deps=("python3" "pip3")
@@ -55,7 +56,6 @@ check_deps() {
         die "Dependency not found: ${missing[*]}\n  Install with: xbps-install -S ${missing[*]}"
     fi
 
-    # Check that Python version 3.11 or later is installed
     local py_ver
     py_ver=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
     local py_major py_minor
@@ -68,51 +68,126 @@ check_deps() {
     info "Python ${py_ver} ✔"
 }
 
-# ─── Install Python dependencies in the lib directory ───────────────────────
-install_python_deps() {
-    info "Installing Python dependencies to ${LIB_DIR} ..."
+ensure_build_deps() {
+    if ! python3 -c "import setuptools.build_meta" 2>/dev/null; then
+        warn "setuptools.build_meta not available"
+        
+        # Coba install dari repo Void dulu
+        if command -v xbps-install &>/dev/null; then
+            info "Installing via xbps ..."
+            xbps-install -Sy python3-setuptools python3-wheel || true
+        fi
+        
+        # Fallback ke pip jika xbps gagal
+        if ! python3 -c "import setuptools.build_meta" 2>/dev/null; then
+            info "Installing via pip ..."
+            pip3 install --upgrade setuptools wheel
+        fi
+    fi
+}
+
+# ─── Clean build directory ────────────────────────────────────────
+clean_build_dir() {
+    if [[ -d "${BUILD_DIR}" ]]; then
+        info "Cleaning old build directory ..."
+        rm -rf "${BUILD_DIR}"
+    fi
+    mkdir -p "${BUILD_DIR}"
+}
+
+# ─── Fase 1: Build wheel ──────────────────────────────────────────
+do_build() {
+    info "Building wheel ..."
+    clean_build_dir
+
+    cd "${SCRIPT_DIR}"
+
+    # Build wheel terlebih dahulu
+    python3 -m pip wheel \
+        --no-build-isolation \
+        --no-deps \
+        --wheel-dir "${BUILD_DIR}" \
+        .
+
+    # Alternative: if the above still fails, use this method:
+    # Alternatif: jika di atas masih gagal, gunakan cara ini:
+    #python3 -m build --wheel --outdir "${BUILD_DIR}" .
+    
+    local wheel_file
+    wheel_file=$(ls "${BUILD_DIR}"/${PKG_NAME}-*.whl 2>/dev/null)
+    
+    if [[ -z "${wheel_file}" ]]; then
+        wheel_file=$(find /root/.cache/pip/wheels -name "${PKG_NAME}-*.whl" -type f 2>/dev/null | head -1)
+        if [[ -z "${wheel_file}" ]]; then
+            die "Wheel build failed: no .whl found in ${BUILD_DIR} or pip cache"
+        fi
+        # Copy ke build dir
+        cp "${wheel_file}" "${BUILD_DIR}/"
+        info "Wheel copied from pip cache to ${BUILD_DIR}"
+    fi
+
+    success "Wheel built: ${BUILD_DIR}/${PKG_NAME}-*.whl"
+}
+
+# ─── Fase 2: Install the wheel to the system ──────────────────────────────
+do_install_wheel() {
+    info "Installing wheel to ${INSTALL_PREFIX} ..."
+
+    if [[ -d "${LIB_DIR}" ]]; then
+        warn "Removing old installation at ${LIB_DIR} ..."
+        rm -rf "${LIB_DIR}"
+    fi
+
+    mkdir -p "${LIB_DIR}"
+
+    python3 -m pip install \
+        --no-build-isolation \
+        --no-deps \
+        --no-index \
+        --prefix="${INSTALL_PREFIX}" \
+        --root="${INSTALL_PREFIX}" \
+        --root-user-action=ignore \
+        "${BUILD_DIR}"/${PKG_NAME}-*.whl
+
+    success "Wheel installed to ${INSTALL_PREFIX}"
+}
+
+# ─── Fase 3: Install runtime dependencies ─────────────────────────
+do_install_deps() {
+    info "Installing runtime dependencies to ${LIB_DIR} ..."
 
     pip3 install \
         --target "${LIB_DIR}" \
         --quiet \
         --no-cache-dir \
-        "typer[all]>=0.12" \
+        --root-user-action=ignore \
         "httpx>=0.27" \
         "rich>=13.0"
 
-    success "Python dependencies are installed."
+    success "Runtime dependencies installed."
 }
 
-# ─── Copy the source package ──────────────────────────────────────────
-install_source() {
-    info "Copying the source code for ${PKG_NAME} to ${LIB_DIR} ..."
-
-    if [[ ! -d "${SCRIPT_DIR}/${PKG_NAME}" ]]; then
-        die "The '${PKG_NAME}/' directory was not found in: ${SCRIPT_DIR}"
-    fi
-
-    mkdir -p "${LIB_DIR}"
-    cp -r "${SCRIPT_DIR}/${PKG_NAME}" "${LIB_DIR}/"
-
-    success "Source copied to ${LIB_DIR}/${PKG_NAME}/"
-}
-
-# ─── Create a wrapper script in /usr/bin/ ────────────────────────────
+# ─── Create wrapper script ────────────────────────────────────────
 install_wrapper() {
-    info "Create a wrapper in the ${BIN_DIR}/${APP_NAME} ..."
+    info "Creating wrapper in ${BIN_DIR}/${APP_NAME} ..."
 
     mkdir -p "${BIN_DIR}"
 
-    cat > "${BIN_DIR}/${APP_NAME}" << EOF
+    cat > "${BIN_DIR}/${APP_NAME}" << 'EOF'
 #!/bin/bash
-#Wrapper for letx (Let-X) — VUR Helper for Void Linux
+# Wrapper for letx (Let-X) — VUR Helper for Void Linux
 # Auto-generated by install.sh
-export PYTHONPATH="${LIB_DIR}:\${PYTHONPATH:-}"
-exec python3 -m letx.cli "\$@"
+
+LIB_DIR="/usr/lib/letx"
+
+# Prioritize separate deps, fallback to system site-packages
+export PYTHONPATH="${LIB_DIR}:${PYTHONPATH:-}"
+
+exec python3 -m letx.cli "$@"
 EOF
 
     chmod 0755 "${BIN_DIR}/${APP_NAME}"
-    success "Wrapper made: ${BIN_DIR}/${APP_NAME}"
+    success "Wrapper created: ${BIN_DIR}/${APP_NAME}"
 }
 
 # ─── Install man page (opsional) ──────────────────────────────────
@@ -125,10 +200,10 @@ install_manpage() {
     info "Installing man page ..."
     mkdir -p "${MAN_DIR}"
     install -m 0644 "${SCRIPT_DIR}/letx.1" "${MAN_DIR}/letx.1"
-    success "Man page installedl: ${MAN_DIR}/letx.1"
+    success "Man page installed: ${MAN_DIR}/letx.1"
 }
 
-# ─── Tulis file metadata instalasi ───────────────────────────────
+# ─── Write manifest ───────────────────────────────────────────────
 write_manifest() {
     mkdir -p "${SHARE_DIR}"
     cat > "${SHARE_DIR}/MANIFEST" << EOF
@@ -138,8 +213,18 @@ installed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 install_prefix=${INSTALL_PREFIX}
 lib_dir=${LIB_DIR}
 bin=${BIN_DIR}/${APP_NAME}
+build_dir=${BUILD_DIR}
 EOF
-    success "The manifest is written to: ${SHARE_DIR}/MANIFEST"
+    success "Manifest written to: ${SHARE_DIR}/MANIFEST"
+}
+
+# ─── Cleanup build directory ──────────────────────────────────────
+cleanup_build() {
+    if [[ -d "${BUILD_DIR}" ]]; then
+        info "Cleaning up build directory ..."
+        rm -rf "${BUILD_DIR}"
+        success "Build directory removed."
+    fi
 }
 
 # ─── Uninstall ────────────────────────────────────────────────────
@@ -172,8 +257,14 @@ do_uninstall() {
         ((removed++))
     fi
 
+    # Bersihkan build directory sisa jika ada
+    if [[ -d "${BUILD_DIR}" ]]; then
+        rm -rf "${BUILD_DIR}"
+        success "Deleted leftover: ${BUILD_DIR}"
+    fi
+
     if [[ "${removed}" -eq 0 ]]; then
-        warn "${APP_NAME} Not found in the system; nothing has been deleted."
+        warn "${APP_NAME} not found in the system; nothing was removed."
     else
         success "${APP_NAME} was successfully uninstalled."
     fi
@@ -181,27 +272,28 @@ do_uninstall() {
 
 # ─── Install ──────────────────────────────────────────────────────
 do_install() {
-    echo -e "\n${BLU}╔══════════════════════════════╗"
-    echo -e "║  Let-X ${APP_VERSION} — Installation  ║"
-    echo -e "╚══════════════════════════════╝${RST}\n"
+    echo -e "\n${BLU}╔═══════════════════════════════════════════╗"
+    echo -e "║  Let-X ${APP_VERSION} — Wheel Python Installation  ║"
+    echo -e "╚═══════════════════════════════════════════╝${RST}\n"
 
     check_root
     check_deps
-    install_source
-    install_python_deps
+    ensure_build_deps
+    do_build
+    do_install_wheel
+    do_install_deps
     install_wrapper
     install_manpage
     write_manifest
+    cleanup_build
 
     echo ""
     echo -e "${GRN}╔════════════════════════════╗"
     echo -e "║  Installation Successful!  ║"
     echo -e "╚════════════════════════════╝${RST}"
     echo ""
-    echo -e "  Run            : ${CYN}letx --help${RST}"
-    echo -e "  Search for pkg : ${CYN}letx search <keyword>${RST}"
-    echo -e "  List of pkg    : ${CYN}letx list${RST}"
-    echo -e "  Get of pkg     : ${CYN}letx get <package>${RST}"
+    echo -e "  Help    : ${CYN}letx -h, --help${RST}"
+    echo -e "  Version : ${CYN}letx -v, --version${RST}"
     echo ""
 }
 
@@ -210,7 +302,7 @@ case "${1:-install}" in
     install)
         do_install
         ;;
-    uninstall | remove)
+    uninstall)
         check_root
         do_uninstall
         ;;
