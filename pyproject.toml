@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "letx"
-version     = "0.1.0"
+version     = "0.1.1"
 description = "Let-X — VUR Helper untuk Void Linux"
 readme      = "README.md"
 license     = { text = "MIT" }

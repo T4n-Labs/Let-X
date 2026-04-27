@@ -1,6 +1,6 @@
 """
-repo/fetch.py — Download folder template package dari VUR ke lokal
-Strategi: GitHub Contents API (tidak butuh git/svn)
+repo/fetch.py — Download package template folder from VUR to local storage
+Strategy: GitHub Contents API (no git or svn required)
 """
 
 from __future__ import annotations
@@ -23,28 +23,28 @@ def download_package(
     progress_cb: Callable[[str], None] | None = None,
 ) -> Path:
     """
-    Download seluruh folder package dari VUR ke direktori lokal.
+    Download the full package folder from VUR to local storage.
 
     Args:
-        pkg_path:    path di repo, misal "extra/discord"
+        pkg_path:    path in the repo, e.g. "extra/discord"
         category:    "core" | "extra" | "multilib"
-        pkg_name:    nama package, misal "discord"
-        progress_cb: opsional callback(pesan) untuk progress
+        pkg_name:    package name, e.g. "discord"
+        progress_cb: optional callback(message) for download progress
 
     Returns:
-        Path direktori lokal tempat template disimpan
+        Local directory path where the template was saved
 
     Raises:
-        httpx.HTTPError: Jika gagal fetch dari GitHub
-        ValueError: Jika category tidak dikenal
+        httpx.HTTPError: If the GitHub request fails
+        ValueError: If the category is not recognized
     """
     if category not in TEMPLATE_DIRS:
-        raise ValueError(f"Category tidak dikenal: '{category}'")
+        raise ValueError(f"Unknown category: '{category}'")
 
     ensure_dirs()
     dest = TEMPLATE_DIRS[category] / pkg_name
 
-    # Bersihkan dulu jika sudah ada (update)
+    # Clean up existing copy (for re-downloads)
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True)
@@ -54,7 +54,7 @@ def download_package(
 
 
 def package_exists_locally(category: str, pkg_name: str) -> bool:
-    """Cek apakah template package sudah ada di lokal."""
+    """Check whether a package template already exists locally."""
     if category not in TEMPLATE_DIRS:
         return False
     dest = TEMPLATE_DIRS[category] / pkg_name
@@ -62,7 +62,7 @@ def package_exists_locally(category: str, pkg_name: str) -> bool:
 
 
 def local_package_path(category: str, pkg_name: str) -> Path | None:
-    """Return path lokal package jika ada, None jika tidak."""
+    """Return the local path for a package, or None if not found."""
     if category not in TEMPLATE_DIRS:
         return None
     dest = TEMPLATE_DIRS[category] / pkg_name
@@ -77,7 +77,7 @@ def _fetch_dir(
     progress_cb: Callable[[str], None] | None,
     _client: httpx.Client | None = None,
 ) -> None:
-    """Rekursif fetch semua file dalam satu direktori via GitHub API."""
+    """Recursively fetch all files in a directory via GitHub API."""
     own_client = _client is None
     client = _client or httpx.Client(timeout=15, follow_redirects=True)
 
@@ -104,7 +104,7 @@ def _fetch_file(
     client: httpx.Client,
     progress_cb: Callable[[str], None] | None,
 ) -> None:
-    """Download satu file dari raw GitHub."""
+    """Download a single file from raw GitHub."""
     if progress_cb:
         progress_cb(f"  ↓ {repo_path}")
 

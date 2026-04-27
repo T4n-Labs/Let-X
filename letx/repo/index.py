@@ -1,5 +1,5 @@
 """
-repo/index.py — Fetch & cache packages.json dari VUR
+repo/index.py — Fetch and cache packages.json from VUR
 """
 
 import json
@@ -19,7 +19,7 @@ Package = dict[str, Any]
 
 
 def _cache_valid() -> bool:
-    """Cek apakah cache masih fresh (belum melewati TTL)."""
+    """Check whether the local cache is still fresh (within TTL)."""
     if not PACKAGES_CACHE.exists():
         return False
     age = time.time() - PACKAGES_CACHE.stat().st_mtime
@@ -37,15 +37,15 @@ def _read_cache() -> list[Package]:
 
 def fetch_index(force: bool = False) -> list[Package]:
     """
-    Ambil index packages dari VUR.
-    - Pakai cache lokal jika masih valid dan force=False
-    - Fetch dari GitHub jika cache expired atau force=True
+    Fetch the VUR package index.
+    - Uses local cache if still valid and force=False
+    - Fetches from GitHub if cache is expired or force=True
 
     Returns:
-        List of package dicts dari packages.json
+        List of package dicts from packages.json
 
     Raises:
-        RuntimeError: Jika tidak ada cache dan tidak bisa online
+        RuntimeError: If fetch fails and no local cache exists
     """
     if not force and _cache_valid():
         return _read_cache()
@@ -61,13 +61,13 @@ def fetch_index(force: bool = False) -> list[Package]:
         if PACKAGES_CACHE.exists():
             return _read_cache()
         raise RuntimeError(
-            f"Gagal fetch index dari GitHub dan tidak ada cache lokal.\n"
+            f"Failed to fetch index from GitHub and no local cache found.\n"
             f"Error: {e}"
         ) from e
 
 
 def get_package(name: str, force: bool = False) -> Package | None:
-    """Cari satu package berdasarkan nama eksak (case-insensitive)."""
+    """Find a single package by exact name (case-insensitive)."""
     index = fetch_index(force=force)
     name_lower = name.lower()
     for pkg in index:
@@ -77,7 +77,7 @@ def get_package(name: str, force: bool = False) -> Package | None:
 
 
 def cache_info() -> dict[str, Any]:
-    """Informasi status cache saat ini."""
+    """Return current cache status information."""
     if not PACKAGES_CACHE.exists():
         return {"exists": False, "path": str(PACKAGES_CACHE)}
 

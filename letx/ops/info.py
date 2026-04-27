@@ -1,5 +1,5 @@
 """
-ops/info.py — Detail lengkap satu package
+ops/info.py — Retrieve detailed information for a single package
 """
 
 from __future__ import annotations
@@ -14,12 +14,12 @@ Package = dict[str, Any]
 
 def get_info(name: str) -> dict[str, Any] | None:
     """
-    Ambil informasi lengkap sebuah package.
-    Gabungkan data dari index + status lokal.
+    Fetch full details for a package.
+    Combines index data with local template status.
 
     Returns:
-        Dict berisi semua info package + status lokal,
-        atau None jika package tidak ditemukan.
+        Dict with all package fields plus local status,
+        or None if the package was not found.
     """
     pkg = get_package(name)
     if not pkg:

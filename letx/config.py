@@ -1,5 +1,5 @@
 """
-config.py — Konstanta global untuk Let-X
+config.py — Global constants for Let-X
 """
 
 from pathlib import Path
@@ -18,26 +18,26 @@ CATEGORIES_URL = f"{VUR_RAW_BASE}/categories.json"
 CONFIG_DIR = Path.home() / ".config" / "letx"
 CACHE_DIR  = Path.home() / ".cache"  / "letx"
 
-# Tempat template disimpan setelah `letx get`
+# Template storage directories after `letx get`
 TEMPLATE_DIRS: dict[str, Path] = {
     "core":     CONFIG_DIR / "core",
     "extra":    CONFIG_DIR / "extra",
     "multilib": CONFIG_DIR / "multilib",
 }
 
-# File cache index
+# Cache files
 PACKAGES_CACHE   = CACHE_DIR / "packages.json"
 CATEGORIES_CACHE = CACHE_DIR / "categories.json"
 
-# TTL cache dalam detik (default: 1 jam)
+# Cache TTL in seconds (default: 1 hour)
 CACHE_TTL = 3600
 
-# ─── xbps-src (untuk fase berikutnya) ─────────────────────
+# ─── xbps-src (phase 2) ───────────────────────────────────
 VOID_PACKAGES_DIR = Path.home() / "void-packages"
 XBPS_SRC          = VOID_PACKAGES_DIR / "xbps-src"
 
 
 def ensure_dirs() -> None:
-    """Buat semua direktori yang dibutuhkan jika belum ada."""
+    """Create all required local directories if they don't exist."""
     for d in [CONFIG_DIR, CACHE_DIR, *TEMPLATE_DIRS.values()]:
         d.mkdir(parents=True, exist_ok=True)

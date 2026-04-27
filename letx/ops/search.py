@@ -1,5 +1,5 @@
 """
-ops/search.py — Cari package di index VUR
+ops/search.py — Search and list packages from the VUR index
 """
 
 from __future__ import annotations
@@ -18,14 +18,15 @@ def search_packages(
     category: str | None = None,
 ) -> list[Package]:
     """
-    Cari packages berdasarkan keyword (case-insensitive).
+    Search packages by keyword (case-insensitive).
+    Keyword is matched against: name, maintainer, homepage.
 
     Args:
-        keyword:  kata kunci pencarian
-        category: filter opsional ("core"|"extra"|"multilib")
+        keyword:  search keyword
+        category: optional filter ("core"|"extra"|"multilib")
 
     Returns:
-        List package yang cocok, diurutkan: name-match duluan
+        Matching packages sorted by relevance (exact name first)
     """
     index = fetch_index()
     kw    = keyword.lower()
@@ -52,10 +53,10 @@ def search_packages(
 
 def list_packages(category: str | None = None) -> list[Package]:
     """
-    Tampilkan semua package, opsional filter by category.
+    Return all packages, optionally filtered by category.
 
     Args:
-        category: None → semua | "core"|"extra"|"multilib"
+        category: None → all | "core"|"extra"|"multilib"
     """
     index = fetch_index()
     if category:
@@ -64,6 +65,6 @@ def list_packages(category: str | None = None) -> list[Package]:
 
 
 def available_categories() -> list[str]:
-    """Return list kategori unik yang ada di index."""
+    """Return a sorted list of unique categories in the index."""
     index = fetch_index()
     return sorted({p["category"] for p in index if "category" in p})

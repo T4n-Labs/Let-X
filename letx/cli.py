@@ -1,6 +1,6 @@
 """
-cli.py — Entry point CLI untuk Let-X
-Menggunakan argparse (stdlib) — tidak butuh dependensi eksternal
+cli.py — CLI entry point for Let-X
+Uses argparse (stdlib) — no external dependencies required
 """
 
 from __future__ import annotations
@@ -28,10 +28,10 @@ from letx.utils.print import (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="letx",
-        description="Let-X — VUR Helper untuk Void Linux",
+        description="Let-X — VUR Helper for Void Linux",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Contoh:\n"
+            "Examples:\n"
             "  letx search discord\n"
             "  letx search browser -c extra\n"
             "  letx info wine\n"
@@ -44,44 +44,44 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-v", "--version",
         action="version",
-        version="letx 0.1.0",
+        version="letx 0.1.1",
     )
 
     sub = parser.add_subparsers(dest="command", metavar="<command>")
     sub.required = True
 
     # ── search ──────────────────────────────────────────
-    p_search = sub.add_parser("search", help="Cari package di VUR")
-    p_search.add_argument("keyword", help="Kata kunci pencarian")
+    p_search = sub.add_parser("search", help="Search for a package in VUR")
+    p_search.add_argument("keyword", help="Search keyword")
     p_search.add_argument(
         "-c", "--category",
-        metavar="KATEGORI",
-        help="Filter by kategori: core | extra | multilib",
+        metavar="CATEGORY",
+        help="Filter by category: core | extra | multilib",
     )
 
     # ── info ────────────────────────────────────────────
-    p_info = sub.add_parser("info", help="Tampilkan detail package")
-    p_info.add_argument("name", help="Nama package")
+    p_info = sub.add_parser("info", help="Show package details")
+    p_info.add_argument("name", help="Package name")
 
     # ── list ────────────────────────────────────────────
-    p_list = sub.add_parser("list", help="Tampilkan semua package")
+    p_list = sub.add_parser("list", help="List all available packages")
     p_list.add_argument(
         "-c", "--category",
-        metavar="KATEGORI",
-        help="Filter by kategori: core | extra | multilib",
+        metavar="CATEGORY",
+        help="Filter by category: core | extra | multilib",
     )
 
     # ── get ─────────────────────────────────────────────
-    p_get = sub.add_parser("get", help="Download template package ke lokal")
-    p_get.add_argument("name", help="Nama package")
+    p_get = sub.add_parser("get", help="Download package template locally")
+    p_get.add_argument("name", help="Package name")
     p_get.add_argument(
         "-f", "--force",
         action="store_true",
-        help="Re-download meski sudah ada lokal",
+        help="Re-download even if template already exists locally",
     )
 
     # ── update ──────────────────────────────────────────
-    sub.add_parser("update", help="Refresh cache index dari VUR")
+    sub.add_parser("update", help="Refresh the VUR package index cache")
 
     return parser
 
@@ -90,8 +90,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def cmd_search(args: argparse.Namespace) -> int:
     print_info(
-        f"Mencari '{args.keyword}'"
-        + (f" [kategori: {args.category}]" if args.category else "")
+        f"Searching for '{args.keyword}'"
+        + (f" [category: {args.category}]" if args.category else "")
         + " ..."
     )
     try:
@@ -101,10 +101,10 @@ def cmd_search(args: argparse.Namespace) -> int:
         return 1
 
     if not results:
-        print_warn(f"Tidak ada package yang cocok dengan '{args.keyword}'.")
+        print_warn(f"No packages found matching '{args.keyword}'.")
         return 0
 
-    print_package_table(results, title=f"Hasil Pencarian: {args.keyword}")
+    print_package_table(results, title=f"Search Results: {args.keyword}")
     return 0
 
 
@@ -116,7 +116,7 @@ def cmd_info(args: argparse.Namespace) -> int:
         return 1
 
     if not info:
-        print_error(f"Package '{args.name}' tidak ditemukan di VUR.")
+        print_error(f"Package '{args.name}' not found in VUR.")
         return 1
 
     print_package_info(info)
@@ -130,12 +130,12 @@ def cmd_list(args: argparse.Namespace) -> int:
         print_error(str(e))
         return 1
 
-    title = "Package VUR" + (f" — Kategori: {args.category}" if args.category else " — Semua")
+    title = "VUR Packages" + (f" — Category: {args.category}" if args.category else " — All")
 
     if not packages:
         cats = available_categories()
-        print_warn(f"Tidak ada package di kategori '{args.category}'.")
-        print_info(f"Kategori yang tersedia: {', '.join(cats)}")
+        print_warn(f"No packages found in category '{args.category}'.")
+        print_info(f"Available categories: {', '.join(cats)}")
         return 0
 
     print_package_table(packages, title=title)
@@ -150,17 +150,17 @@ def cmd_get(args: argparse.Namespace) -> int:
         return 1
 
     if not info:
-        print_error(f"Package '{args.name}' tidak ditemukan di VUR.")
+        print_error(f"Package '{args.name}' not found in VUR.")
         return 1
 
     if info["installed_locally"] and not args.force:
         print_warn(
-            f"Template '{args.name}' sudah ada di: {info['local_path']}\n"
-            f"  Gunakan --force untuk re-download."
+            f"Template '{args.name}' already exists at: {info['local_path']}\n"
+            f"  Use --force to re-download."
         )
         return 0
 
-    print_info(f"Mengambil template '{args.name}' ({info['category']}) ...")
+    print_info(f"Fetching template '{args.name}' ({info['category']}) ...")
 
     def progress(msg: str) -> None:
         console.print(f"[dim]{msg}[/dim]")
@@ -173,19 +173,19 @@ def cmd_get(args: argparse.Namespace) -> int:
             progress_cb=progress,
         )
     except Exception as e:
-        print_error(f"Gagal mengambil template: {e}")
+        print_error(f"Failed to fetch template: {e}")
         return 1
 
-    print_success(f"Template berhasil disimpan ke: {dest}")
-    print_info("Selanjutnya kamu bisa build dengan xbps-src (coming soon).")
+    print_success(f"Template saved to: {dest}")
+    print_info("You can now build it with xbps-src (coming soon).")
     return 0
 
 
 def cmd_update(_args: argparse.Namespace) -> int:
-    print_info("Memperbarui index dari VUR ...")
+    print_info("Refreshing package index from VUR ...")
     try:
         packages = fetch_index(force=True)
-        print_success(f"Index diperbarui — {len(packages)} package tersedia.")
+        print_success(f"Index updated — {len(packages)} packages available.")
         return 0
     except RuntimeError as e:
         print_error(str(e))

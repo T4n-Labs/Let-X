@@ -1,5 +1,5 @@
 """
-utils/print.py — Helper output berbasis Rich untuk Let-X
+utils/print.py — Rich output helpers for Let-X
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from rich.text import Text
 
 console = Console()
 
-# ─── Warna & style tema ───────────────────────────────────
+# ─── Color theme ──────────────────────────────────────────
 C_NAME    = "bold cyan"
 C_VER     = "green"
 C_CAT     = "yellow"
@@ -27,9 +27,9 @@ C_COUNT   = "bold magenta"
 
 
 def print_package_table(packages: list[dict[str, Any]], title: str = "") -> None:
-    """Tampilkan list packages dalam tabel."""
+    """Display a list of packages as a Rich table."""
     if not packages:
-        console.print("[dim]Tidak ada package ditemukan.[/dim]")
+        console.print("[dim]No packages found.[/dim]")
         return
 
     table = Table(
@@ -40,9 +40,9 @@ def print_package_table(packages: list[dict[str, Any]], title: str = "") -> None
         title_style=C_TITLE,
         expand=False,
     )
-    table.add_column("Nama",       style=C_NAME,  no_wrap=True)
-    table.add_column("Versi",      style=C_VER,   no_wrap=True)
-    table.add_column("Kategori",   style=C_CAT,   no_wrap=True)
+    table.add_column("Name",       style=C_NAME,  no_wrap=True)
+    table.add_column("Version",    style=C_VER,   no_wrap=True)
+    table.add_column("Category",   style=C_CAT,   no_wrap=True)
     table.add_column("Maintainer", style=C_MAINT)
 
     for pkg in packages:
@@ -55,13 +55,13 @@ def print_package_table(packages: list[dict[str, Any]], title: str = "") -> None
 
     console.print()
     console.print(table)
-    console.print(f"  [dim]Total: [{C_COUNT}]{len(packages)}[/{C_COUNT}] package[/dim]\n")
+    console.print(f"  [dim]Total: [{C_COUNT}]{len(packages)}[/{C_COUNT}] package(s)[/dim]\n")
 
 
 def print_package_info(info: dict[str, Any]) -> None:
-    """Tampilkan detail satu package dalam panel."""
+    """Display detailed info for a single package in a Rich panel."""
     name       = info.get("name", "?")
-    version    = info.get("version") or "tidak diketahui"
+    version    = info.get("version") or "unknown"
     category   = info.get("category", "?")
     homepage   = info.get("homepage", "-")
     maintainer = info.get("maintainer", "-")
@@ -70,16 +70,16 @@ def print_package_info(info: dict[str, Any]) -> None:
     local_path = info.get("local_path")
 
     status_text = (
-        f"[{C_LOCAL}]✔ Tersedia lokal[/{C_LOCAL}] → {local_path}"
+        f"[{C_LOCAL}]✔ Available locally[/{C_LOCAL}] → {local_path}"
         if is_local
-        else f"[{C_MISSING}]✘ Belum di-get[/{C_MISSING}]"
+        else f"[{C_MISSING}]✘ Not fetched yet[/{C_MISSING}]"
     )
 
     content = Text.assemble(
-        ("Nama       : ", "dim"), (name,       C_NAME),  "\n",
-        ("Versi      : ", "dim"), (version,    C_VER),   "\n",
-        ("Kategori   : ", "dim"), (category,   C_CAT),   "\n",
-        ("Path Repo  : ", "dim"), (path,       "white"), "\n",
+        ("Name       : ", "dim"), (name,       C_NAME),  "\n",
+        ("Version    : ", "dim"), (version,    C_VER),   "\n",
+        ("Category   : ", "dim"), (category,   C_CAT),   "\n",
+        ("Repo Path  : ", "dim"), (path,       "white"), "\n",
         ("Homepage   : ", "dim"), (homepage,   C_URL),   "\n",
         ("Maintainer : ", "dim"), (maintainer, C_MAINT), "\n",
     )
@@ -111,7 +111,7 @@ def print_warn(msg: str) -> None:
 
 
 def _short_maintainer(maintainer: str) -> str:
-    """Tampilkan hanya nama tanpa email untuk tabel yang ringkas."""
+    """Return only the name part, stripping the email address."""
     if "<" in maintainer:
         return maintainer.split("<")[0].strip()
     return maintainer
