@@ -1,26 +1,26 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────
-# install.sh — Let-X installation script
+# install.sh — Let-X installer for Void Linux
 # Usage:
 #   sudo ./install.sh            → install
-#   sudo ./install.sh uninstall  → uninstall
+#   sudo ./install.sh uninstall  → remove
 # ─────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
-# ─── Konstanta ────────────────────────────────────────────────────
+# ─── Constants ────────────────────────────────────────────────────
 APP_NAME="letx"
 PKG_NAME="letx"
-APP_VERSION="0.1.1"
+APP_VERSION="0.1.0"
 INSTALL_PREFIX="/usr"
 BIN_DIR="${INSTALL_PREFIX}/bin"
 LIB_DIR="${INSTALL_PREFIX}/lib/${APP_NAME}"
 SHARE_DIR="${INSTALL_PREFIX}/share/${APP_NAME}"
 MAN_DIR="${INSTALL_PREFIX}/share/man/man1"
+BUILD_DIR="/tmp/letx-build"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="/tmp/letx-build-${APP_VERSION}"
 
-# ─── Warna output ─────────────────────────────────────────────────
+# ─── Colors ───────────────────────────────────────────────────────
 RED='\033[0;31m'
 GRN='\033[0;32m'
 YLW='\033[1;33m'
@@ -67,9 +67,15 @@ check_deps() {
     done
 
     if [[ "${#missing[@]}" -gt 0 ]]; then
-        die "Dependency not found: ${missing[*]}\n  Install with: xbps-install -S ${missing[*]}"
+        die "Missing dependencies: ${missing[*]}\n  Install with: xbps-install -S ${missing[*]}"
     fi
 
+    # Check build tools
+    if ! python3 -c "import setuptools, wheel" &>/dev/null; then
+        die "python3-setuptools and python3-wheel are required.\n  Install with: xbps-install -S python3-setuptools python3-wheel"
+    fi
+
+    # Check Python >= 3.11
     local py_ver
     py_ver=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
     local py_major py_minor
@@ -77,80 +83,67 @@ check_deps() {
     py_minor=$(echo "${py_ver}" | cut -d. -f2)
 
     if [[ "${py_major}" -lt 3 ]] || [[ "${py_major}" -eq 3 && "${py_minor}" -lt 11 ]]; then
-        die "Python 3.11 or later is required; found: ${py_ver}"
+        die "Python >= 3.11 required, found: ${py_ver}"
     fi
     info "Python ${py_ver} ✔"
 }
 
-ensure_build_deps() {
-    if ! python3 -c "import setuptools.build_meta" 2>/dev/null; then
-        warn "setuptools.build_meta not available"
-        
-        # Coba install dari repo Void dulu
-        if command -v xbps-install &>/dev/null; then
-            info "Installing via xbps ..."
-            xbps-install -Sy python3-setuptools python3-wheel || true
+# ─── Remove old binaries (migration) ─────────────────────────────
+cleanup_old_binaries() {
+    for old_bin in "let" "vur"; do
+        if [[ -f "${BIN_DIR}/${old_bin}" ]]; then
+            local first_line
+            first_line=$(head -1 "${BIN_DIR}/${old_bin}" 2>/dev/null || true)
+            if [[ "${first_line}" == "#!/bin/bash" ]]; then
+                warn "Removing old binary: ${BIN_DIR}/${old_bin} ..."
+                rm -f "${BIN_DIR}/${old_bin}"
+                success "Removed old binary: ${BIN_DIR}/${old_bin}"
+            fi
         fi
-        
-        # Fallback ke pip jika xbps gagal
-        if ! python3 -c "import setuptools.build_meta" 2>/dev/null; then
-            info "Installing via pip ..."
-            pip3 install --upgrade setuptools wheel
-        fi
+    done
+}
+
+# ─── Clean previous installation ─────────────────────────────────
+clean_previous() {
+    if [[ -d "${LIB_DIR}" ]]; then
+        info "Cleaning previous installation at ${LIB_DIR} ..."
+        rm -rf "${LIB_DIR}"
+        success "Previous installation cleaned."
     fi
 }
 
-# ─── Clean build directory ────────────────────────────────────────
-clean_build_dir() {
-    if [[ -d "${BUILD_DIR}" ]]; then
-        info "Cleaning old build directory ..."
-        rm -rf "${BUILD_DIR}"
+# ─── Phase 1: Build wheel ─────────────────────────────────────────
+build_wheel() {
+    info "Building wheel from source ..."
+
+    if [[ ! -f "${SCRIPT_DIR}/pyproject.toml" ]]; then
+        die "pyproject.toml not found in: ${SCRIPT_DIR}"
     fi
+
+    # Clean previous build
+    rm -rf "${BUILD_DIR}"
     mkdir -p "${BUILD_DIR}"
-}
 
-# ─── Fase 1: Build wheel ──────────────────────────────────────────
-do_build() {
-    info "Building wheel ..."
-    clean_build_dir
-
-    cd "${SCRIPT_DIR}"
-
-    # Build wheel terlebih dahulu
     python3 -m pip wheel \
         --no-build-isolation \
         --no-deps \
         --wheel-dir "${BUILD_DIR}" \
-        .
+        --quiet \
+        "${SCRIPT_DIR}"
 
-    # Alternative: if the above still fails, use this method:
-    # Alternatif: jika di atas masih gagal, gunakan cara ini:
-    #python3 -m build --wheel --outdir "${BUILD_DIR}" .
-    
     local wheel_file
-    wheel_file=$(ls "${BUILD_DIR}"/${PKG_NAME}-*.whl 2>/dev/null)
-    
+    wheel_file=$(ls "${BUILD_DIR}"/${PKG_NAME}-*.whl 2>/dev/null | head -1)
+
     if [[ -z "${wheel_file}" ]]; then
-        wheel_file=$(find /root/.cache/pip/wheels -name "${PKG_NAME}-*.whl" -type f 2>/dev/null | head -1)
-        if [[ -z "${wheel_file}" ]]; then
-            die "Wheel build failed: no .whl found in ${BUILD_DIR} or pip cache"
-        fi
-        # Copy ke build dir
-        cp "${wheel_file}" "${BUILD_DIR}/"
-        info "Wheel copied from pip cache to ${BUILD_DIR}"
+        die "Wheel build failed — no .whl file found in ${BUILD_DIR}"
     fi
 
-    success "Wheel built: ${BUILD_DIR}/${PKG_NAME}-*.whl"
+    success "Wheel built: $(basename "${wheel_file}")"
 }
 
-# ─── Fase 2: Install the wheel to the system ──────────────────────────────
-do_install_wheel() {
-    info "Installing wheel to ${INSTALL_PREFIX} ..."
-
-   if [[ -d "${LIB_DIR}" ]]; then
-        warn "Removing old installation at ${LIB_DIR} ..."
-        rm -rf "${LIB_DIR}"
-    fi
+# ─── Phase 2: Install wheel ───────────────────────────────────────
+install_wheel() {
+    info "Installing ${APP_NAME} from wheel to ${INSTALL_PREFIX} ..."
 
     mkdir -p "${LIB_DIR}"
 
@@ -159,17 +152,18 @@ do_install_wheel() {
         --no-deps \
         --no-index \
         --prefix="${INSTALL_PREFIX}" \
-        --root="${INSTALL_PREFIX}" \
-        --root-user-action=ignore \
+        --root="/" \
+        --quiet \
         "${BUILD_DIR}"/${PKG_NAME}-*.whl
 
-    success "Wheel installed to ${INSTALL_PREFIX}"
+    success "letx installed to ${BIN_DIR}/${APP_NAME}"
 }
 
-# ─── Fase 3: Install runtime dependencies ─────────────────────────
-do_install_deps() {
-    info "Installing runtime dependencies to ${LIB_DIR} ..."
+# ─── Phase 3: Install runtime dependencies ───────────────────────
+install_runtime_deps() {
+    info "Installing runtime dependencies (httpx, rich) ..."
 
+    # Install into LIB_DIR so they are isolated from the system Python
     pip3 install \
         --target "${LIB_DIR}" \
         --quiet \
@@ -181,43 +175,38 @@ do_install_deps() {
     success "Runtime dependencies installed."
 }
 
-# ─── Create wrapper script ────────────────────────────────────────
-install_wrapper() {
-    info "Creating wrapper in ${BIN_DIR}/${APP_NAME} ..."
+# ─── Create wrapper at /usr/bin/letx ─────────────────────────────
+patch_wrapper() {
+    local bin="${BIN_DIR}/${APP_NAME}"
+
+    # Remove any pip-generated entry point (may land in wrong path)
+    rm -f "${bin}"
+    rm -f "/usr/local/bin/${APP_NAME}"
 
     mkdir -p "${BIN_DIR}"
 
-    cat > "${BIN_DIR}/${APP_NAME}" << 'EOF'
+    cat > "${bin}" << EOF
 #!/bin/bash
-# Wrapper for letx (Let-X) — VUR Helper for Void Linux
-# Auto-generated by install.sh
-
-LIB_DIR="/usr/lib/letx"
-
-# Prioritize separate deps, fallback to system site-packages
-export PYTHONPATH="${LIB_DIR}:${PYTHONPATH:-}"
-
-exec python3 -m letx.cli "$@"
+export PYTHONPATH="${LIB_DIR}:\${PYTHONPATH:-}"
+exec python3 -m letx.cli "\$@"
 EOF
 
-    chmod 0755 "${BIN_DIR}/${APP_NAME}"
-    success "Wrapper created: ${BIN_DIR}/${APP_NAME}"
+    chmod 0755 "${bin}"
+    success "Wrapper created: ${bin}"
 }
 
-# ─── Install man page (opsional) ──────────────────────────────────
+# ─── Install man page (optional) ─────────────────────────────────
 install_manpage() {
     if [[ ! -f "${SCRIPT_DIR}/letx.1" ]]; then
-        warn "Man page (letx.1) not found, skipped."
+        warn "Man page (letx.1) not found, skipping."
         return 0
     fi
-
-    info "Installing man page ..."
     mkdir -p "${MAN_DIR}"
     install -m 0644 "${SCRIPT_DIR}/letx.1" "${MAN_DIR}/letx.1"
     success "Man page installed: ${MAN_DIR}/letx.1"
 }
 
-# ─── Write manifest ───────────────────────────────────────────────
+# ─── Write install manifest ───────────────────────────────────────
 write_manifest() {
     mkdir -p "${SHARE_DIR}"
     cat > "${SHARE_DIR}/MANIFEST" << EOF
@@ -227,121 +216,74 @@ installed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 install_prefix=${INSTALL_PREFIX}
 lib_dir=${LIB_DIR}
 bin=${BIN_DIR}/${APP_NAME}
-build_dir=${BUILD_DIR}
 EOF
-    success "Manifest written to: ${SHARE_DIR}/MANIFEST"
+    success "Manifest written: ${SHARE_DIR}/MANIFEST"
 }
 
-# ─── Cleanup build directory ──────────────────────────────────────
+# ─── Cleanup build artifacts ─────────────────────────────────────
 cleanup_build() {
-    if [[ -d "${BUILD_DIR}" ]]; then
-        info "Cleaning up build directory ..."
-        rm -rf "${BUILD_DIR}"
-        success "Build directory removed."
-    fi
+    rm -rf "${BUILD_DIR}"
 }
 
 # ─── Uninstall ────────────────────────────────────────────────────
 do_uninstall() {
-    info "Removing ${APP_NAME} from the system ..."
+    info "Removing ${APP_NAME} from system ..."
 
     local removed=0
 
-    # 1. Hapus binary wrapper
     if [[ -f "${BIN_DIR}/${APP_NAME}" ]]; then
         rm -f "${BIN_DIR}/${APP_NAME}"
-        success "Deleted: ${BIN_DIR}/${APP_NAME}"
+        success "Removed: ${BIN_DIR}/${APP_NAME}"
         ((removed++))
     fi
 
-    # 2. Hapus direktori dependencies (dari do_install_deps)
     if [[ -d "${LIB_DIR}" ]]; then
         rm -rf "${LIB_DIR}"
-        success "Deleted: ${LIB_DIR}"
+        success "Removed: ${LIB_DIR}"
         ((removed++))
     fi
 
-    # 3. Hapus direktori share (manifest)
     if [[ -d "${SHARE_DIR}" ]]; then
         rm -rf "${SHARE_DIR}"
-        success "Deleted: ${SHARE_DIR}"
+        success "Removed: ${SHARE_DIR}"
         ((removed++))
     fi
 
-    # 4. Hapus man page
     if [[ -f "${MAN_DIR}/letx.1" ]]; then
         rm -f "${MAN_DIR}/letx.1"
-        success "Deleted: ${MAN_DIR}/letx.1"
+        success "Removed: ${MAN_DIR}/letx.1"
         ((removed++))
     fi
 
-    # 5. Hapus build directory sisa (jika ada)
-    if [[ -d "${BUILD_DIR}" ]]; then
-        rm -rf "${BUILD_DIR}"
-        success "Deleted leftover: ${BUILD_DIR}"
-        ((removed++))
-    fi
-
-    # 6. Hapus module utama dari site-packages (instalasi wheel normal)
-    local site_packages
-    site_packages=$(python3 -c "import site; print(site.getsitepackages()[0])" 2>/dev/null)
-    if [[ -n "${site_packages}" ]]; then
-        if [[ -d "${site_packages}/${APP_NAME}" ]]; then
-            rm -rf "${site_packages}/${APP_NAME}"
-            success "Deleted: ${site_packages}/${APP_NAME}"
-            ((removed++))
-        fi
-        # Hapus direktori dist-info (misal letx-0.1.1.dist-info)
-        local dist_info="${site_packages}/${APP_NAME}-"*.dist-info
-        if compgen -G "${dist_info}" > /dev/null; then
-            rm -rf ${dist_info}
-            success "Deleted: ${site_packages}/${APP_NAME}-*.dist-info"
-            ((removed++))
-        fi
-    fi
-
-    # 7. Hapus kemungkinan instalasi user (--user) – opsional
-    local user_site=$(python3 -c "import site; print(site.getusersitepackages())" 2>/dev/null)
-    if [[ -n "${user_site}" ]]; then
-        if [[ -d "${user_site}/${APP_NAME}" ]]; then
-            rm -rf "${user_site}/${APP_NAME}"
-            success "Deleted (user): ${user_site}/${APP_NAME}"
-            ((removed++))
-        fi
-        local user_dist_info="${user_site}/${APP_NAME}-"*.dist-info
-        if compgen -G "${user_dist_info}" > /dev/null; then
-            rm -rf ${user_dist_info}
-            success "Deleted (user): ${user_site}/${APP_NAME}-*.dist-info"
-            ((removed++))
-        fi
-    fi
-
-    # 8. Hapus cache pip (opsional, cukup bersihkan yang terkait Let-X)
-    if [[ -d /root/.cache/pip/wheels ]]; then
-        find /root/.cache/pip/wheels -name "${APP_NAME}-*.whl" -delete 2>/dev/null && \
-            success "Deleted pip cache for ${APP_NAME}"
+    # Also clean leftover Python site-packages installed by wheel
+    local site_pkg
+    site_pkg=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib', vars={'base': '/usr', 'platbase': '/usr'}))" 2>/dev/null || true)
+    if [[ -n "${site_pkg}" ]]; then
+        rm -rf "${site_pkg}/${PKG_NAME}" "${site_pkg}/${PKG_NAME}-"*.dist-info 2>/dev/null && \
+            success "Removed: ${site_pkg}/${PKG_NAME}" || true
     fi
 
     if [[ "${removed}" -eq 0 ]]; then
-        warn "${APP_NAME} not found in the system; nothing was removed."
+        warn "${APP_NAME} not found on this system, nothing removed."
     else
-        success "${APP_NAME} was successfully uninstalled."
+        success "${APP_NAME} successfully uninstalled."
     fi
 }
 
 # ─── Install ──────────────────────────────────────────────────────
 do_install() {
-    echo -e "\n${BLU}╔═══════════════════════════════════════════╗"
-    echo -e "║  Let-X ${APP_VERSION} — Wheel Python Installation  ║"
-    echo -e "╚═══════════════════════════════════════════╝${RST}\n"
+    echo -e "\n${BLU}╔══════════════════════════════╗"
+    echo -e "║  Let-X ${APP_VERSION} — Installation  ║"
+    echo -e "╚══════════════════════════════╝${RST}\n"
 
     check_root
     check_deps
-    ensure_build_deps
-    do_build
-    do_install_wheel
-    do_install_deps
-    install_wrapper
+    cleanup_old_binaries
+    clean_previous
+    build_wheel       # Phase 1
+    install_wheel     # Phase 2
+    install_runtime_deps  # Phase 3
+    patch_wrapper
     install_manpage
     write_manifest
     cleanup_build
