@@ -30,5 +30,5 @@ Thumbs.db
 # Environment variables
 .env
 
-# Backend
-backend
+# Ignore Folder
+backend/
