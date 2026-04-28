@@ -11,7 +11,7 @@ set -euo pipefail
 # ─── Constants ────────────────────────────────────────────────────
 APP_NAME="letx"
 PKG_NAME="letx"
-APP_VERSION="0.1.0"
+APP_VERSION="0.1.1"
 INSTALL_PREFIX="/usr"
 BIN_DIR="${INSTALL_PREFIX}/bin"
 LIB_DIR="${INSTALL_PREFIX}/lib/${APP_NAME}"
