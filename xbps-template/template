@@ -1,13 +1,13 @@
 # Template for 'Let-X'
 pkgname=letx
-version=0.1.1
+version=0.1.2
 revision=1
 short_desc="VUR Helper for Void Linux"
 maintainer="Gh0sT4n <darskevoid@gmail.com>"
 license="BSD-2-Clause"
 homepage="https://github.com/T4n-Labs/Let-X"
 distfiles="https://github.com/T4n-Labs/Let-X/archive/refs/tags/v${version}.tar.gz"
-checksum=44a1229f9be720d155b1dbad3a944cec75bf61be585f810ddd3ff62bc3a027fa
+checksum=34c61bca52331a243dac1aa4f1666ec89f89cf667d7c638e3d337a80b75f060c
 
 # ── Dependencies ───────────────────────────────────────────────────
 # Tidak pakai build_style=python3-module karena masih memanggil
