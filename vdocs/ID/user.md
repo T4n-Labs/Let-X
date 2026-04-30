@@ -1,32 +1,43 @@
-# Let-X — Dokumentasi untuk User
+# Let-X — Panduan Pengguna
 
-> **Let-X** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengambilan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
+> **Let-X** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengunduhan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
+
+**Binary:** `letx` | **Versi:** 0.1.2 | **Bahasa:** Python 3.11+
+
+---
 
 ## Daftar Isi
 
-**Untuk Pengguna Umum**
 - [Apa itu Let-X?](#apa-itu-let-x)
 - [Persyaratan Sistem](#persyaratan-sistem)
 - [Instalasi](#instalasi)
 - [Referensi Command](#referensi-command)
+  - [letx search](#letx-search)
+  - [letx info](#letx-info)
+  - [letx list](#letx-list)
+  - [letx get](#letx-get)
+  - [letx update](#letx-update)
 - [Contoh Penggunaan](#contoh-penggunaan)
 - [Struktur File Lokal](#struktur-file-lokal)
 - [Troubleshooting](#troubleshooting)
 - [Uninstall](#uninstall)
 
-# Untuk Pengguna Umum
+---
 
 ## Apa itu Let-X?
 
 **Let-X** adalah tool CLI (Command Line Interface) yang berjalan di terminal Void Linux. Fungsinya mirip dengan `yay` atau `paru` di Arch Linux, tetapi untuk ekosistem **VUR (Void User Repository)**.
 
 Dengan Let-X kamu bisa:
-- 🔍 **Mencari** package yang tersedia di VUR
-- 📋 **Melihat** daftar semua package
-- ℹ️ **Melihat detail** informasi sebuah package
+- 🔍 **Mencari** package yang tersedia di VUR berdasarkan nama atau deskripsi
+- 📋 **Melihat daftar** package per kategori beserta statistiknya
+- ℹ️ **Melihat detail** informasi sebuah package termasuk status lokal
+- 📁 **Menemukan** template yang sudah diunduh di sistem
 - 📥 **Mengunduh** template package ke komputer lokal
 
-> **Catatan:** Fitur `build` dan `install` via `xbps-src` sedang dalam pengembangan dan akan hadir di versi berikutnya.
+> **Catatan:** Fitur `build` dan `install` via `xbps-src` direncanakan untuk v0.2.0.
+
+---
 
 ## Persyaratan Sistem
 
@@ -41,6 +52,8 @@ Cek versi Python kamu:
 python3 --version
 ```
 
+---
+
 ## Instalasi
 
 ### Metode 1 — Script Otomatis (Direkomendasikan)
@@ -48,291 +61,448 @@ python3 --version
 ```bash
 # 1. Clone repo Let-X
 git clone https://github.com/T4n-Labs/Let-X
-cd let
+cd Let-X
 
 # 2. Jalankan script instalasi sebagai root
 sudo ./install.sh
 ```
 
-Script ini akan secara otomatis:
-- Menyalin source ke `/usr/lib/letx/`
-- Menginstall dependensi Python (`typer`, `httpx`, `rich`) ke `/usr/lib/letx/`
-- Membuat binary wrapper di `/usr/bin/letx`
+Script akan otomatis melakukan:
+1. Membersihkan instalasi lama di `/usr/lib/letx/`
+2. Build Python wheel dari source (`letx-*.whl`)
+3. Install wheel ke `/usr`
+4. Install runtime dependencies (`httpx`, `rich`) ke `/usr/lib/letx/`
+5. Membuat wrapper `/usr/bin/letx` dengan `PYTHONPATH` yang benar
 
-Setelah selesai, cek instalasi:
+Verifikasi instalasi:
 ```bash
 letx --help
+letx -v
 ```
 
-### Metode 2 — Instalasi via xbps-src (Paket Resmi)
+Untuk uninstall:
+```bash
+sudo ./install.sh uninstall
+```
+
+### Metode 2 — via xbps-src
 
 Jika kamu sudah setup `void-packages`:
 ```bash
-# Salin template ke void-packages
-cp -r xbps-template/template ~/void-packages/srcpkgs/letx
+# Salin template
+cp -r xbps-template/letx ~/void-packages/srcpkgs/letx
 
 # Build dan install
 cd ~/void-packages
 ./xbps-src pkg letx
-sudo xbps-install --repository=hostdir/binpkgs letx
+sudo xbps-install --repository=/home/$USER/.config/xbps-src/hostdir/binpkgs letx
 ```
+
+---
 
 ## Referensi Command
 
 ### `letx search`
 
-Mencari package di VUR berdasarkan kata kunci.
+Mencari package di VUR berdasarkan nama atau deskripsi.
 
 ```
-letx search <keyword> [--category <kategori>]
+letx search <keyword> [-c CATEGORY]
+letx search "<deskripsi>" [-c CATEGORY]
+letx search -t <pkg_name>
 ```
 
 | Argumen / Opsi | Keterangan |
 |---|---|
-| `<keyword>` | Kata kunci pencarian (wajib) |
-| `--category`, `-c` | Filter hasil berdasarkan kategori (`core`, `extra`, `multilib`) |
+| `<keyword>` | Nama package atau kata yang dicari |
+| `"<deskripsi>"` | Frasa deskripsi (gunakan tanda kutip untuk multi-kata) |
+| `-c`, `--category CATEGORY` | Filter by kategori: `core` \| `extra` \| `multilib` |
+| `-t`, `--template PKG_NAME` | Cari template yang sudah diunduh di lokal |
 
-**Contoh:**
+**Cari berdasarkan nama:**
 ```bash
-# Cari semua package yang mengandung kata "browser"
+letx search discord
 letx search browser
-
-# Cari hanya di kategori extra
-letx search browser --category extra
-
-# Cari dengan shorthand -c
-letx search discord -c extra
+letx search zen -c extra
 ```
 
-**Output:**
+**Cari berdasarkan deskripsi:**
+```bash
+# Mencari di field 'description' pada packages.json
+letx search "Programming Language"
+letx search "web browser"
+letx search "Windows" -c multilib
 ```
-→ Mencari 'browser' ...
 
-╭──────────────────┬─────────┬──────────┬─────────────╮
-│ Nama             │ Versi   │ Kategori │ Maintainer  │
-├──────────────────┼─────────┼──────────┼─────────────┤
-│ zen-browser      │ 1.19.8b │ extra    │ Naz         │
-│ firefox          │ 127.0   │ extra    │ Gh0sT4n     │
-╰──────────────────┴─────────┴──────────┴─────────────╯
+**Cari template lokal (`-t`):**
 
-  Total: 2 package
+Mengecek direktori secara berurutan: `core → extra → multilib`
+```bash
+letx search -t discord
+letx search -t wine
 ```
+
+Contoh output `-t` (template ditemukan):
+```
+╭────────── discord (local template) ──────────╮
+│ Package     : discord                         │
+│ Category    : extra                           │
+│ Location    : ~/.config/letx/extra/discord    │
+│ Version     : 0.0.134                         │
+│ Description : Chat and VOIP application       │
+│ Homepage    : https://discord.com             │
+│ Maintainer  : Gh0sT4n                         │
+│                                               │
+│ Files:                                        │
+│   • files/zprofile                            │
+│   • template                                  │
+╰───────────────────────────────────────────────╯
+```
+
+Contoh output `-t` (template tidak ditemukan):
+```
+! Template 'discord' not found locally.
+  Checked: core → extra → multilib
+  Run 'letx get discord' to download it.
+```
+
+---
 
 ### `letx info`
 
-Menampilkan informasi lengkap sebuah package.
+Menampilkan informasi detail package, atau menjelajahi package terbaru per kategori.
 
 ```
-letx info <nama-package>
-```
-
-| Argumen | Keterangan |
-|---|---|
-| `<nama-package>` | Nama package yang ingin dilihat (wajib, case-insensitive) |
-
-**Contoh:**
-```bash
-letx info discord
-letx info wine
-letx info zen-browser
-```
-
-**Output:**
-```
-╭─────────────── discord ───────────────╮
-│ Nama       : discord                  │
-│ Versi      : 0.0.134                  │
-│ Kategori   : extra                    │
-│ Path Repo  : extra/discord            │
-│ Homepage   : https://discord.com      │
-│ Maintainer : Gh0sT4n                  │
-╰───────────────────────────────────────╯
-
-  Status     : ✘ Belum di-get
-```
-
-### `letx list`
-
-Menampilkan semua package yang tersedia di VUR.
-
-```
-letx list [--category <kategori>]
-```
-
-| Opsi | Keterangan |
-|---|---|
-| `--category`, `-c` | Filter berdasarkan kategori (`core`, `extra`, `multilib`) |
-
-**Contoh:**
-```bash
-# Tampilkan semua package
-letx list
-
-# Hanya tampilkan package di kategori multilib
-letx list --category multilib
-
-# Shorthand
-letx list -c core
-```
-
-### `let get`
-
-Mengunduh template package dari VUR ke direktori lokal `~/.config/let/`.
-
-```
-letx get <nama-package> [--force]
+letx info <pkg_name>
+letx info <all|core|extra|multilib>
+letx info -c <CATEGORY>
+letx info -t <pkg_name>
 ```
 
 | Argumen / Opsi | Keterangan |
 |---|---|
-| `<nama-package>` | Nama package yang akan diunduh (wajib) |
-| `--force`, `-f` | Paksa re-download meski template sudah ada lokal |
+| `<pkg_name>` | Tampilkan detail lengkap package tertentu |
+| `all` | Tampilkan 20 package yang terakhir ditambahkan (semua kategori) |
+| `core` | Tampilkan 20 package terbaru di kategori `core` |
+| `extra` | Tampilkan 20 package terbaru di kategori `extra` |
+| `multilib` | Tampilkan 20 package terbaru di kategori `multilib` |
+| `-c`, `--category CATEGORY` | List semua package di kategori (`all`\|`core`\|`extra`\|`multilib`) |
+| `-t`, `--template PKG_NAME` | Tampilkan detail template lokal |
 
-**Contoh:**
+**Contoh penggunaan:**
 ```bash
-# Download template discord
+# Detail package tertentu
+letx info discord
+letx info wine
+
+# 20 package terbaru
+letx info all
+letx info extra
+letx info multilib
+
+# List semua package di kategori
+letx info -c core
+letx info -c all
+
+# Info template lokal
+letx info -t discord
+```
+
+**Contoh output detail package:**
+```
+╭────────────────── discord ──────────────────╮
+│ Name        : discord                        │
+│ Version     : 0.0.134                        │
+│ Category    : extra                          │
+│ Description : Chat and VOIP application      │
+│ Repo Path   : extra/discord                  │
+│ Homepage    : https://discord.com            │
+│ Maintainer  : Gh0sT4n                        │
+╰──────────────────────────────────────────────╯
+  Status      : ✘ Not fetched yet
+```
+
+Jika `letx info` dijalankan tanpa argumen:
+```
+[ERROR] No Options
+usage: letx info [-h] [-c CATEGORY] [-t PKG_NAME] [name]
+...
+```
+
+---
+
+### `letx list`
+
+Menampilkan daftar package dari VUR. Membutuhkan minimal satu argumen atau opsi.
+
+```
+letx list <all|core|extra|multilib>
+letx list -c <CATEGORY>
+letx list -p [CATEGORY]
+```
+
+| Argumen / Opsi | Keterangan |
+|---|---|
+| `all` | Tampilkan 20 package yang terakhir ditambahkan |
+| `core` | Tampilkan 20 package terbaru di `core` |
+| `extra` | Tampilkan 20 package terbaru di `extra` |
+| `multilib` | Tampilkan 20 package terbaru di `multilib` |
+| `-c`, `--category CATEGORY` | List **semua** package di kategori tertentu |
+| `-p`, `--package [CATEGORY]` | Tampilkan statistik jumlah package |
+
+**Contoh penggunaan:**
+```bash
+# 20 package terbaru
+letx list all
+letx list extra
+
+# Semua package di kategori tertentu
+letx list -c core
+letx list -c multilib
+
+# Statistik jumlah package
+letx list -p            # semua kategori
+letx list -p extra      # kategori tertentu
+letx list -p core
+```
+
+**Contoh output statistik (`-p`):**
+```
+  VUR Package Statistics
+ ──────────────────────
+  Category   Packages
+  core              3
+  extra            17
+  multilib          3
+ ──────────────────────
+  total            23
+```
+
+Jika `letx list` dijalankan tanpa argumen:
+```
+[ERROR] No Options
+usage: letx list [-h] [-c CATEGORY] [-p [CATEGORY]] [scope]
+...
+```
+
+---
+
+### `letx get`
+
+Mengunduh template package dari VUR ke direktori lokal.
+
+```
+letx get <pkg_name> [-f]
+```
+
+| Argumen / Opsi | Keterangan |
+|---|---|
+| `<pkg_name>` | Nama package yang akan diunduh (wajib) |
+| `-f`, `--force` | Re-download meski template sudah ada di lokal |
+
+**Contoh penggunaan:**
+```bash
+# Unduh template
 letx get discord
+letx get wine
 
-# Download ulang (update template)
+# Paksa re-download (update template)
 letx get discord --force
-
-# Shorthand force
 letx get wine -f
 ```
 
-**Output:**
+**Contoh output:**
 ```
-→ Mengambil template 'discord' (extra) ...
+→ Fetching template 'discord' (extra) ...
   ↓ extra/discord/template
   ↓ extra/discord/files/zprofile
-✔ Template berhasil disimpan ke: /home/user/.config/let/extra/discord
-→ Selanjutnya kamu bisa build dengan xbps-src (coming soon).
+✔ Template saved to: /home/user/.config/letx/extra/discord
+→ You can now build it with xbps-src (coming soon).
 ```
+
+Template disimpan di:
+- Package **core** → `~/.config/letx/core/<pkg>/`
+- Package **extra** → `~/.config/letx/extra/<pkg>/`
+- Package **multilib** → `~/.config/letx/multilib/<pkg>/`
+
+---
 
 ### `letx update`
 
-Memperbarui cache index package dari VUR. Berguna jika ada package baru yang ditambahkan ke VUR.
+Memperbarui cache index package dari VUR.
 
 ```
 letx update
 ```
 
-**Contoh:**
 ```bash
 letx update
 ```
 
-**Output:**
 ```
-→ Memperbarui index dari VUR ...
-✔ Index diperbarui — 47 package tersedia.
+→ Refreshing package index from VUR ...
+✔ Index updated — 23 packages available.
 ```
 
-> **Catatan:** Cache otomatis diperbarui setiap 1 jam saat kamu menggunakan Let. `let update` digunakan untuk memaksanya diperbarui sekarang juga.
+> Cache di `~/.cache/letx/packages.json` otomatis diperbarui setiap 1 jam. Gunakan `letx update` untuk memperbarui sekarang juga.
+
+---
 
 ## Contoh Penggunaan
 
 ### Alur Kerja Tipikal
 
 ```bash
-# 1. Perbarui index dulu (opsional, bisa skip jika baru install)
+# 1. Perbarui index (opsional pada pertama kali)
 letx update
 
-# 2. Cari package yang kamu inginkan
+# 2. Cari package
 letx search discord
 
-# 3. Cek detail package
+# 3. Lihat detail lengkap
 letx info discord
 
-# 4. Download templatenya
+# 4. Unduh template
 letx get discord
 
-# 5. Template sekarang ada di:
+# 5. Template sudah tersedia di:
 ls ~/.config/letx/extra/discord/
+letx search -t discord    # verifikasi
 ```
 
-### Eksplorasi Package Berdasarkan Kategori
+### Menjelajahi Repository
 
 ```bash
-# Lihat semua package core (package sistem dasar)
-letx list --category core
+# Lihat package yang baru ditambahkan
+letx list all
+letx list extra
 
-# Lihat semua package multilib (untuk kompatibilitas 32-bit / Wine)
-letx list --category multilib
+# Jelajahi kategori tertentu
+letx list -c core
+letx list -c multilib
 
-# Lihat semua package extra (aplikasi pihak ketiga)
-letx list --category extra
+# Cek jumlah package
+letx list -p
+
+# Cari package gaming
+letx search "games"
+letx search "Windows" -c multilib
+
+# Cari browser
+letx search browser -c extra
 ```
+
+### Mengelola Template Lokal
+
+```bash
+# Cek apakah template sudah diunduh
+letx search -t discord
+letx info -t wine
+
+# Unduh beberapa template
+letx get discord
+letx get wine
+letx get zen-browser
+
+# Update template yang sudah ada
+letx get discord --force
+```
+
+---
 
 ## Struktur File Lokal
 
-Setelah menggunakan Let-X, berikut file dan direktori yang dibuat di sistem kamu:
+Setelah menggunakan Let-X, berikut direktori dan file yang dibuat di sistem:
 
 ```
-~/.config/letx/              ← Direktori utama konfigurasi
-├── core/                   ← Template dari kategori core
+~/.config/letx/                   ← Direktori konfigurasi utama
+├── core/                         ← Template dari kategori core
 │   └── <nama-package>/
-│       ├── template        ← File template utama xbps-src
-│       ├── files/          ← File tambahan (jika ada)
-│       └── patches/        ← Patch files (jika ada)
-├── extra/                  ← Template dari kategori extra
+│       ├── template              ← File template utama xbps-src
+│       ├── files/                ← File tambahan (jika ada)
+│       └── patches/              ← File patch (jika ada)
+├── extra/                        ← Template dari kategori extra
 │   └── <nama-package>/
-└── multilib/               ← Template dari kategori multilib
+└── multilib/                     ← Template dari kategori multilib
     └── <nama-package>/
 
-~/.cache/let/               ← Cache index
-└── packages.json           ← Salinan lokal index VUR (diperbarui tiap 1 jam)
+~/.cache/letx/                    ← Direktori cache
+└── packages.json                 ← Salinan lokal index VUR (diperbarui tiap 1 jam)
+
+/usr/bin/letx                     ← Binary wrapper
+/usr/lib/letx/                    ← Source Python + runtime deps
+/usr/share/letx/MANIFEST          ← Metadata instalasi
 ```
 
+---
 
 ## Troubleshooting
 
 ### `letx: command not found`
 
-Binary tidak terpasang di PATH. Coba:
+Binary tidak terinstall atau tidak ada di PATH.
 ```bash
 # Cek apakah file ada
 ls -la /usr/bin/letx
 
-# Jika tidak ada, jalankan ulang instalasi
+# Jika tidak ada, jalankan ulang installer
 sudo ./install.sh
 ```
 
-### `Gagal fetch index dari GitHub dan tidak ada cache lokal`
+### `Failed to fetch index from GitHub and no local cache found`
 
-Letx tidak bisa terhubung ke internet dan tidak ada cache lokal tersedia.
+Let-X tidak bisa terhubung ke internet dan tidak ada cache lokal.
 ```bash
-# Cek koneksi internet
+# Cek koneksi
 ping github.com
 
-# Jika terhubung tapi masih gagal, coba perbarui index secara manual
+# Paksa refresh cache
 letx update
 ```
 
-### `Package 'xxx' tidak ditemukan di VUR`
+### `Package 'xxx' not found in VUR`
 
-Kemungkinan package belum ada di VUR, atau nama salah ketik.
+Package mungkin belum ada di VUR, atau nama salah ketik.
 ```bash
 # Cari dengan nama parsial
 letx search xxx
 
-# Perbarui index dulu, mungkin package baru ditambahkan
+# Perbarui index dulu (mungkin ada package baru)
 letx update
-lext search xxx
+letx search xxx
 ```
 
-### `Python >= 3.11 diperlukan`
+### `Template 'xxx' not found locally`
 
-Versi Python terlalu lama. Update Python via xbps:
+Template belum diunduh.
+```bash
+letx get xxx
+```
+
+### `Python >= 3.11 required`
+
+Versi Python terlalu lama. Update via xbps:
 ```bash
 sudo xbps-install -Su python3
 python3 --version
 ```
 
+### Warning `Target directory already exists` saat install
+
+Ini terjadi jika menginstall ulang di atas instalasi lama. `install.sh` terbaru menangani ini otomatis dengan membersihkan `/usr/lib/letx/` sebelum install.
+
+Jika masih terjadi, bersihkan manual:
+```bash
+sudo rm -rf /usr/lib/letx
+sudo ./install.sh
+```
+
+---
+
 ## Uninstall
 
 ```bash
-# Di direktori repo Let
+# Dari direktori repo Let-X
 sudo ./install.sh uninstall
 ```
 
@@ -342,11 +512,11 @@ Script akan menghapus:
 - `/usr/share/letx/`
 - `/usr/share/man/man1/letx.1` (jika ada)
 
-Data cache dan konfigurasi lokal **tidak** dihapus otomatis. Hapus manual jika diperlukan:
+Data pengguna **tidak** dihapus otomatis. Untuk membersihkan semuanya:
 ```bash
-rm -rf ~/.config/let ~/.cache/letx
+rm -rf ~/.config/letx ~/.cache/letx
 ```
 
 ---
-* @T4n-Labs
-* @Gh0sT4n
+
+*Let-X v0.1.2 — VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*

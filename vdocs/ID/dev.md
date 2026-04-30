@@ -1,127 +1,106 @@
-# Let-X — Dokumentasi Untuk Developer
+# Let-X — Panduan Developer
 
-> **Let-X** adalah CLI tool untuk Void Linux yang memudahkan pencarian, pengelolaan, dan pengambilan template package dari **VUR (Void User Repository)** — konsep serupa AUR Helper di Arch Linux.
+> Dokumentasi teknis untuk kontributor dan maintainer **Let-X v0.1.2**.
+
+---
 
 ## Daftar Isi
-**Untuk Developer**
-- [Let-X — Dokumentasi Untuk Developer](#let-x--dokumentasi-untuk-developer)
-  - [Daftar Isi](#daftar-isi)
-- [Untuk Developer](#untuk-developer)
-  - [Arsitektur Proyek](#arsitektur-proyek)
-  - [Struktur Direktori](#struktur-direktori)
-  - [Penjelasan Modul](#penjelasan-modul)
-    - [`config.py`](#configpy)
-    - [`repo/index.py`](#repoindexpy)
-    - [`repo/fetch.py`](#repofetchpy)
-    - [`ops/search.py`](#opssearchpy)
-    - [`ops/info.py`](#opsinfopy)
-    - [`utils/print.py`](#utilsprintpy)
-  - [Alur Data](#alur-data)
-    - [`letx search <keyword>`](#letx-search-keyword)
-    - [`letx get <package>`](#letx-get-package)
-  - [Cara Berkontribusi](#cara-berkontribusi)
-    - [Setup Development Environment](#setup-development-environment)
-    - [Konvensi Kode](#konvensi-kode)
-    - [Menambah Command Baru](#menambah-command-baru)
-  - [Menjalankan Test](#menjalankan-test)
-  - [Build Package xbps-src](#build-package-xbps-src)
-    - [Persiapan](#persiapan)
-    - [Update Checksum (Wajib Setiap Rilis)](#update-checksum-wajib-setiap-rilis)
-    - [Build dan Test](#build-dan-test)
-    - [Checklist Sebelum Submit ke Void Packages](#checklist-sebelum-submit-ke-void-packages)
-  - [Roadmap](#roadmap)
-    - [v0.1.0 — Fase Dasar](#v010--fase-dasar)
-    - [v0.2.0 — Integrasi xbps-src](#v020--integrasi-xbps-src)
-    - [v0.3.0 — Instalasi Penuh](#v030--instalasi-penuh)
-    - [v1.0.0 — Fitur Lanjutan](#v100--fitur-lanjutan)
-  - [Dependensi](#dependensi)
-  - [Lisensi](#lisensi)
 
-# Untuk Developer
+- [Arsitektur Proyek](#arsitektur-proyek)
+- [Struktur Direktori](#struktur-direktori)
+- [Referensi Modul](#referensi-modul)
+- [Alur Data](#alur-data)
+- [Setup Development Environment](#setup-development-environment)
+- [Konvensi Kode](#konvensi-kode)
+- [Menambah Command Baru](#menambah-command-baru)
+- [Menjalankan Test](#menjalankan-test)
+- [Build Package xbps-src](#build-package-xbps-src)
+- [Dependensi](#dependensi)
+- [Roadmap](#roadmap)
+
+---
 
 ## Arsitektur Proyek
 
-Let-X dibangun dengan filosofi **separation of concerns** — setiap lapisan punya tanggung jawab yang jelas dan berdiri sendiri:
+Let-X mengikuti prinsip **separation of concerns** — setiap lapisan punya satu tanggung jawab yang jelas:
 
 ```
-┌─────────────────────────────────────────┐
-│              CLI (cli.py)               │  ← Typer: parse args, output ke user
-├────────────────────┬────────────────────┤
-│     ops/           │     repo/          │  ← Logika bisnis vs akses data
-│  search.py         │  index.py          │
-│  info.py           │  fetch.py          │
-├────────────────────┴────────────────────┤
-│              utils/print.py             │  ← Rich: presentasi output
-├─────────────────────────────────────────┤
-│              config.py                  │  ← Konstanta, paths, URL
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│               CLI (cli.py)                    │  argparse: parse args, routing ke handler
+├────────────────────┬─────────────────────────┤
+│       ops/         │         repo/            │  logika bisnis vs akses data
+│  search.py         │     index.py             │
+│  info.py           │     fetch.py             │
+├────────────────────┴─────────────────────────┤
+│              utils/print.py                   │  Rich: semua output terminal
+├──────────────────────────────────────────────┤
+│               config.py                       │  konstanta, path, URL
+└──────────────────────────────────────────────┘
 ```
 
 **Prinsip penting:**
-- `cli.py` tidak boleh berisi logika — hanya orchestrate calls ke `ops/` dan `repo/`
+- `cli.py` tidak boleh berisi logika — hanya orchestrate ke `ops/` dan `repo/`
 - `ops/` tidak tahu soal HTTP — itu urusan `repo/`
 - `repo/` tidak tahu soal tampilan — itu urusan `utils/`
 - `config.py` tidak mengimport modul manapun dari proyek ini
 
+---
+
 ## Struktur Direktori
 
 ```
-Let-X/                          ← Root proyek
-├── letx/                       ← Package Python utama
-│   ├── __init__.py             ← Versi app (APP_VERSION)
-│   ├── cli.py                  ← Entry point CLI (Typer)
-│   ├── config.py               ← Semua konstanta & path
+Let-X/
+├── letx/                         ← Python package utama
+│   ├── __init__.py               → Versi dan nama app
+│   ├── cli.py                    → Entry point CLI (argparse)
+│   ├── config.py                 → Semua konstanta dan path
 │   │
-│   ├── repo/                   ← Layer akses data (GitHub)
+│   ├── repo/                     → Layer akses data (GitHub)
 │   │   ├── __init__.py
-│   │   ├── index.py            ← Fetch & cache packages.json
-│   │   └── fetch.py            ← Download folder template via GitHub API
+│   │   ├── index.py              → Fetch dan cache packages.json
+│   │   └── fetch.py              → Download folder template via GitHub API
 │   │
-│   ├── ops/                    ← Layer logika bisnis
+│   ├── ops/                      → Layer logika bisnis
 │   │   ├── __init__.py
-│   │   ├── search.py           ← Filter, sort, list packages
-│   │   └── info.py             ← Detail satu package + status lokal
+│   │   ├── search.py             → Search, list, count, pencarian template lokal
+│   │   └── info.py               → Detail package + info template lokal
 │   │
-│   └── utils/                  ← Utilities
+│   └── utils/
 │       ├── __init__.py
-│       └── print.py            ← Rich output (tabel, panel, warna)
+│       └── print.py              → Semua output Rich (tabel, panel, warna)
 │
-├── tests/                      ← Unit tests
+├── tests/
 │   ├── __init__.py
-│   └── test_search.py          ← Test index, search, list
+│   └── test_search.py            → Unit tests
 │
-├── xbps-template/              ← Template xbps-src untuk packaging
-│   ├── let/
-│   │   └── template            ← Template file xbps-src
-│   └── README.md               ← Panduan build via xbps-src
-├── vdocs                       ← Dokumentasi Let-X
-│   ├── docs.md
-│   ├── EN
-│   │   ├── dev.md
-│   │   └── user.md
-│   └── ID
-│       ├── dev.md
-│       └── user.md
-├── install.sh                  ← Script instalasi bash
-├── pyproject.toml              ← Konfigurasi proyek & dependensi
-└── README.md                   ← Overview singkat
+├── xbps-template/
+│   └── letx/
+│       └── template              → Template xbps-src
+│
+├── setup.py                      → Compatibility shim untuk xbps-src
+├── pyproject.toml                → Metadata proyek dan dependensi
+├── install.sh                    → Script instalasi bash
+├── LICENSE
+└── README.md
 ```
 
-## Penjelasan Modul
+---
+
+## Referensi Modul
 
 ### `config.py`
 
-Satu-satunya file yang mendefinisikan semua konstanta global. **Tidak boleh diimport oleh file lain selain via `from let.config import ...`**.
+Satu-satunya tempat untuk semua konstanta. Modul lain tidak boleh hardcode path atau URL.
 
 ```python
-# URL remote
+# Remote
 VUR_REPO     = "T4n-Labs/vur"
 VUR_API_BASE = "https://api.github.com/repos/T4n-Labs/vur/contents"
 PACKAGES_URL = "https://raw.githubusercontent.com/T4n-Labs/vur/main/packages.json"
 
 # Path lokal
 CONFIG_DIR = Path.home() / ".config" / "letx"
-CACHE_DIR  = Path.home() / ".cache" / "letx"
+CACHE_DIR  = Path.home() / ".cache"  / "letx"
 TEMPLATE_DIRS = {
     "core":     CONFIG_DIR / "core",
     "extra":    CONFIG_DIR / "extra",
@@ -131,41 +110,39 @@ TEMPLATE_DIRS = {
 CACHE_TTL = 3600  # detik (1 jam)
 ```
 
-**Untuk mengubah lokasi cache atau TTL**, cukup edit `config.py` — semua modul lain akan otomatis ikut.
+---
 
 ### `repo/index.py`
 
-Bertanggung jawab atas fetch dan cache `packages.json` dari GitHub.
-
-**Fungsi publik:**
+Mengelola fetch dan cache `packages.json`.
 
 | Fungsi | Signature | Keterangan |
 |---|---|---|
 | `fetch_index` | `(force: bool = False) → list[Package]` | Ambil semua package (dari cache atau GitHub) |
-| `get_package` | `(name: str, force: bool = False) → Package \| None` | Cari satu package by nama |
+| `get_package` | `(name: str) → Package \| None` | Cari satu package by nama eksak |
 | `cache_info` | `() → dict` | Status cache saat ini |
 
 **Logika cache:**
 ```
-fetch_index() dipanggil
+fetch_index()
     │
-    ├─ cache ada DAN umur < TTL DAN force=False?
-    │   └─ return data dari cache lokal
+    ├─ Cache ada DAN umur < TTL DAN force=False?
+    │   └─ return cache lokal
     │
     └─ Sebaliknya:
-        ├─ Fetch dari GitHub
-        ├─ Tulis ke cache
-        └─ return data baru
+        ├─ GET packages.json dari GitHub
+        ├─ Tulis ke ~/.cache/letx/packages.json
+        └─ Return data baru
             │
-            └─ Jika fetch GAGAL tapi cache lama ada:
-                └─ return cache lama (graceful degradation)
+            └─ Jika fetch GAGAL tapi ada cache lama:
+                └─ Return cache lama (graceful degradation)
 ```
+
+---
 
 ### `repo/fetch.py`
 
-Bertanggung jawab mengunduh seluruh folder template package dari GitHub menggunakan **GitHub Contents API** (tidak butuh `git` atau `svn` terinstall).
-
-**Fungsi publik:**
+Mengunduh folder template dari GitHub menggunakan **GitHub Contents API** — tidak butuh `git` atau `svn`.
 
 | Fungsi | Signature | Keterangan |
 |---|---|---|
@@ -184,119 +161,153 @@ GET /repos/T4n-Labs/vur/contents/extra/discord
         └─ type == "dir"   → rekursi ke subdirektori
 ```
 
-**Kenapa GitHub Contents API, bukan `git clone` atau `svn`?**
-- Tidak membutuhkan `git` atau `svn` terinstall
-- Hanya mengunduh file yang dibutuhkan (bukan seluruh repo)
-- Lebih portable dan predictable
-- Trade-off: lebih banyak HTTP requests untuk folder dengan banyak file
+---
 
 ### `ops/search.py`
 
-Semua operasi pencarian dan listing dilakukan di sini, **sepenuhnya offline** setelah index di-cache.
-
-**Fungsi publik:**
+Semua operasi pencarian dan listing. Sepenuhnya offline setelah index di-cache.
 
 | Fungsi | Signature | Keterangan |
 |---|---|---|
-| `search_packages` | `(keyword, category=None) → list[Package]` | Cari packages, opsional filter by category |
-| `list_packages` | `(category=None) → list[Package]` | List semua packages |
-| `available_categories` | `() → list[str]` | Daftar kategori yang tersedia |
+| `search_packages` | `(keyword, category=None) → list[Package]` | Cari by nama atau deskripsi |
+| `list_packages` | `(category=None) → list[Package]` | List semua package |
+| `latest_packages` | `(category=None, limit=20) → list[Package]` | Package yang terakhir ditambahkan |
+| `count_packages` | `(category=None) → dict[str, int]` | Jumlah package per kategori |
+| `search_local_template` | `(pkg_name) → LocalTemplateResult` | Cari template di direktori lokal |
+| `available_categories` | `() → list[str]` | Kategori unik di index |
 
-**Field yang dicari saat `search`:**
-- `name` — nama package
-- `maintainer` — nama/email maintainer
-- `homepage` — URL homepage
+**Search fields (fix v0.1.2):**
+```python
+# Hanya name dan description — tidak ada false positive dari maintainer/homepage
+_SEARCH_FIELDS = ("name", "description")
+```
 
-**Algoritma ranking hasil search:**
+**Ranking hasil search:**
 ```python
 def _rank(pkg) -> int:
     name = pkg["name"].lower()
-    if name == keyword:       return 0  # exact match → paling atas
-    if name.startswith(kw):   return 1  # prefix match
-    if kw in name:            return 2  # contains match
-    return 3                            # cocok di field lain
+    if name == keyword:       return 0   # exact match → paling atas
+    if name.startswith(kw):   return 1   # prefix match
+    if kw in name:            return 2   # contains match
+    return 3                             # cocok di description
 ```
+
+**Pencarian template lokal — core → extra → multilib:**
+```python
+search_order = ["core", "extra", "multilib"]
+for cat in search_order:
+    pkg_dir = TEMPLATE_DIRS[cat] / pkg_name
+    if pkg_dir.exists():
+        return LocalTemplateResult(found=True, category=cat, path=pkg_dir, ...)
+return LocalTemplateResult(found=False, ...)
+```
+
+---
 
 ### `ops/info.py`
 
-Menggabungkan data dari index (remote) dengan status lokal.
+| Fungsi | Signature | Keterangan |
+|---|---|---|
+| `get_info` | `(name: str) → dict \| None` | Detail package + status lokal |
+| `get_local_template_info` | `(pkg_name: str) → dict` | Detail template lokal + data VUR |
 
-```python
-def get_info(name: str) -> dict | None:
-    pkg = get_package(name)          # dari index.py
-    is_local = package_exists_locally(category, name)   # dari fetch.py
-    local_path = local_package_path(category, name)     # dari fetch.py
-    return {**pkg, "installed_locally": is_local, "local_path": str(local_path)}
-```
+---
 
 ### `utils/print.py`
 
-Semua output ke terminal harus melalui fungsi di sini. **Jangan pernah `print()` langsung dari modul lain.**
-
-**Fungsi yang tersedia:**
+Semua output ke terminal harus melalui modul ini. **Jangan pernah `print()` langsung dari modul lain.**
 
 | Fungsi | Keterangan |
 |---|---|
-| `print_package_table(packages, title)` | Tabel Rich untuk list packages |
+| `print_package_table(packages, title, show_desc)` | Tabel Rich untuk list package |
 | `print_package_info(info)` | Panel Rich untuk detail satu package |
+| `print_local_template_info(info)` | Panel Rich untuk template lokal |
+| `print_package_counts(counts, category)` | Tabel statistik |
 | `print_success(msg)` | `✔ pesan` (hijau) |
-| `print_error(msg)` | `✘ pesan` (merah) ke stderr |
+| `print_error(msg)` | `✘ pesan` (merah) |
 | `print_info(msg)` | `→ pesan` (cyan) |
 | `print_warn(msg)` | `! pesan` (kuning) |
 
-**Warna tema:**
+**Tema warna:**
 ```python
-C_NAME  = "bold cyan"    # nama package
-C_VER   = "green"        # versi
-C_CAT   = "yellow"       # kategori
-C_MAINT = "dim white"    # maintainer
-C_LOCAL = "bold green"   # status tersedia lokal
+C_NAME    = "bold cyan"     # nama package
+C_VER     = "green"         # versi
+C_CAT     = "yellow"        # kategori
+C_DESC    = "dim white"     # deskripsi
+C_MAINT   = "dim white"     # maintainer
+C_LOCAL   = "bold green"    # tersedia lokal
+C_MISSING = "dim red"       # belum diunduh
+C_PATH    = "cyan"          # path file
+C_FILE    = "dim cyan"      # listing file
 ```
 
-## Alur Data
+---
 
-Berikut alur lengkap untuk setiap command:
+## Alur Data
 
 ### `letx search <keyword>`
 
 ```
-cli.py:cmd_search(keyword)
+letx search discord
     │
-    └─► ops/search.py:search_packages(keyword)
-            │
-            └─► repo/index.py:fetch_index()
-                    │
-                    ├─ Cache valid? → baca ~/.cache/let/packages.json
-                    └─ Cache expired? → GET packages.json dari GitHub
-                                         tulis ke cache
-            │
-            └─ Filter & sort hasil
+    ▼
+cli.py:cmd_search()
     │
-    └─► utils/print.py:print_package_table(results)
+    ├─ args.template? → _search_local_template()
+    │                       → ops/search.py:search_local_template()
+    │                       → utils/print.py:print_local_template_info()
+    │
+    └─ keyword ada → ops/search.py:search_packages()
+                         │
+                         └─ repo/index.py:fetch_index()
+                                 │
+                                 ├─ cache valid → baca file
+                                 └─ expired     → GET GitHub → tulis cache
+                         │
+                         └─ filter (name + description) → sort by rank
+    │
+    └─ utils/print.py:print_package_table()
 ```
 
-### `letx get <package>`
+### `letx list -p`
 
 ```
-cli.py:cmd_get(name)
+letx list -p
     │
-    ├─► ops/info.py:get_info(name)          ← cek index + status lokal
+    ▼
+cli.py:cmd_list()
     │
-    ├─ Sudah ada lokal & tidak --force? → print warning, exit
-    │
-    └─► repo/fetch.py:download_package(path, category, name)
+    └─ ops/search.py:count_packages()
             │
-            └─► GitHub Contents API (rekursif)
-                    │
-                    ├─ Setiap file → GET raw.githubusercontent.com
-                    └─ Tulis ke ~/.config/let/<category>/<name>/
+            └─ fetch_index() → hitung per kategori
     │
-    └─► utils/print.py:print_success(dest)
+    └─ utils/print.py:print_package_counts()
 ```
 
-## Cara Berkontribusi
+### `letx get <pkg>`
 
-### Setup Development Environment
+```
+letx get discord
+    │
+    ▼
+cli.py:cmd_get()
+    │
+    ├─ ops/info.py:get_info()            → cek index + status lokal
+    │
+    ├─ Sudah lokal & tidak --force?      → print_warn(), exit 0
+    │
+    └─ repo/fetch.py:download_package()
+            │
+            └─ GitHub Contents API (rekursif)
+                    ├─ tiap file → GET raw.githubusercontent.com
+                    └─ tulis ke ~/.config/letx/<category>/<pkg>/
+    │
+    └─ utils/print.py:print_success()
+```
+
+---
+
+## Setup Development Environment
 
 ```bash
 # 1. Fork dan clone repo
@@ -310,21 +321,24 @@ source .venv/bin/activate
 # 3. Install dalam mode development
 pip install -e ".[dev]"
 
-# 4. Verifikasi instalasi
+# 4. Verifikasi
 letx --help
 pytest tests/ -v
 ```
 
-### Konvensi Kode
+---
+
+## Konvensi Kode
 
 **Penamaan:**
 - Modul dan fungsi: `snake_case`
 - Konstanta di `config.py`: `SCREAMING_SNAKE_CASE`
 - Type hints wajib untuk semua fungsi publik
 
-**Import order** (ikuti standar `isort`):
+**Import order:**
 ```python
 # 1. stdlib
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -332,77 +346,84 @@ from typing import Any
 import httpx
 from rich.console import Console
 
-# 3. internal (absolute imports)
+# 3. internal (selalu absolute imports)
 from letx.config import CACHE_DIR
 from letx.repo.index import fetch_index
 ```
 
-**Docstring:** Semua fungsi publik wajib punya docstring yang menjelaskan args, return, dan exceptions.
-
+**Docstring — semua fungsi publik wajib:**
 ```python
-def fetch_index(force: bool = False) -> list[Package]:
+def search_packages(keyword: str, category: str | None = None) -> list[Package]:
     """
-    Ambil index packages dari VUR.
+    Search packages by keyword (case-insensitive).
+    Matches against: name, description.
 
     Args:
-        force: Jika True, abaikan cache dan fetch ulang dari GitHub.
+        keyword:  search keyword
+        category: optional filter ("core"|"extra"|"multilib")
 
     Returns:
-        List of package dicts dari packages.json
-
-    Raises:
-        RuntimeError: Jika fetch gagal dan tidak ada cache lokal.
+        Matching packages sorted by relevance.
     """
 ```
 
-### Menambah Command Baru
+---
 
-1. Tambah fungsi command di `cli.py` dengan decorator `@app.command("nama")`
-2. Logika bisnis masuk ke `ops/` (bukan di `cli.py`)
-3. Akses data masuk ke `repo/` (bukan di `ops/`)
-4. Output selalu via `utils/print.py`
-5. Tulis unit test di `tests/`
+## Menambah Command Baru
 
-Contoh skeleton command baru:
+1. Tambah subparser di `cli.py:build_parser()`
+2. Tambah handler `cmd_<nama>()` di `cli.py`
+3. Daftarkan di blok dispatch `main()`
+4. Logika bisnis masuk ke `ops/` (bukan di `cli.py`)
+5. Akses data masuk ke `repo/` (bukan di `ops/`)
+6. Output selalu via `utils/print.py`
+7. Tulis test di `tests/`
 
+**Skeleton command baru:**
 ```python
-# cli.py
-@app.command("remove")
-def cmd_remove(
-    name: Annotated[str, typer.Argument(help="Nama package")],
-) -> None:
-    """Hapus template package dari lokal."""
-    from let.ops.remove import remove_package   # buat modul baru
-    result = remove_package(name)
-    if result:
-        print_success(f"Template '{name}' dihapus.")
-    else:
-        print_error(f"Template '{name}' tidak ditemukan.")
+# Di build_parser():
+p_remove = sub.add_parser("remove", help="Remove a local template")
+p_remove.add_argument("name", help="Package name")
+
+# Handler:
+def cmd_remove(args: argparse.Namespace) -> int:
+    from letx.ops.remove import remove_template   # modul baru
+    removed = remove_template(args.name)
+    if removed:
+        print_success(f"Template '{args.name}' removed.")
+        return 0
+    print_error(f"Template '{args.name}' not found locally.")
+    return 1
+
+# Di main():
+elif args.command == "remove":
+    sys.exit(cmd_remove(args))
 ```
+
+---
 
 ## Menjalankan Test
 
 ```bash
-# Jalankan semua test
+# Semua test
 pytest tests/ -v
 
-# Jalankan test tertentu
+# File tertentu
 pytest tests/test_search.py -v
 
 # Dengan coverage report
-pytest tests/ --cov=let --cov-report=term-missing
+pytest tests/ --cov=letx --cov-report=term-missing
 ```
 
-**Test menggunakan monkeypatch** — tidak ada koneksi internet saat testing:
+Test menggunakan `monkeypatch` — tidak butuh koneksi internet:
 
 ```python
 @pytest.fixture
 def fake_cache(tmp_path, monkeypatch):
-    """Ganti PACKAGES_CACHE dengan file temp berisi mock data."""
     cache_file = tmp_path / "packages.json"
     cache_file.write_text(json.dumps(MOCK_PACKAGES))
-    monkeypatch.setattr("let.repo.index.PACKAGES_CACHE", cache_file)
-    monkeypatch.setattr("let.repo.index.CACHE_TTL", 9999)
+    monkeypatch.setattr("letx.repo.index.PACKAGES_CACHE", cache_file)
+    monkeypatch.setattr("letx.repo.index.CACHE_TTL", 9999)
 ```
 
 **Test yang tersedia:**
@@ -411,41 +432,37 @@ def fake_cache(tmp_path, monkeypatch):
 |---|---|
 | `test_fetch_index_from_cache` | Index dibaca dari cache lokal |
 | `test_get_package_found` | Cari package yang ada |
-| `test_get_package_case_insensitive` | Pencarian tidak case-sensitive |
-| `test_get_package_not_found` | Package tidak ada → return None |
-| `test_search_by_name` | Pencarian by nama exact |
+| `test_get_package_case_insensitive` | `DISCORD` == `discord` |
+| `test_get_package_not_found` | Package tidak ada → return `None` |
+| `test_search_by_name` | Pencarian nama exact |
 | `test_search_partial` | Pencarian nama parsial |
 | `test_search_with_category_filter` | Filter by kategori |
-| `test_search_no_results` | Keyword tidak cocok → list kosong |
+| `test_search_no_results` | Tidak ada hasil → list kosong |
 | `test_list_all` | List semua package |
 | `test_list_by_category` | List filter by kategori |
-| `test_available_categories` | Daftar kategori unik |
+| `test_available_categories` | Return set kategori unik |
+
+---
 
 ## Build Package xbps-src
-
-Untuk mendistribusikan Let sebagai package `.xbps` resmi:
 
 ### Persiapan
 
 ```bash
-# Setup void-packages
 git clone https://github.com/void-linux/void-packages ~/void-packages
 cd ~/void-packages
 ./xbps-src binary-bootstrap
 
-# Copy template
-mkdir srcpkgs/letx/
-cp /path/to/Let-X/xbps-template/template srcpkgs/letx/
+cp -r /path/to/Let-X/xbps-template/letx srcpkgs/letx
 ```
 
 ### Update Checksum (Wajib Setiap Rilis)
 
 ```bash
-# Setelah membuat GitHub Release dengan tag vX.Y.Z
 cd ~/void-packages
 ./xbps-src fetch letx
-sha256sum $XBPS_SRCDISTDIR/let-X.Y.Z.tar.gz
-# → salin hash ke field 'checksum' di srcpkgs/let/template
+sha256sum $XBPS_SRCDISTDIR/letx-0.1.2.tar.gz
+# → salin hash ke field 'checksum' di srcpkgs/letx/template
 ```
 
 ### Build dan Test
@@ -459,77 +476,103 @@ cd ~/void-packages
 # Cek isi package
 ./xbps-src show-files letx
 
-# Install lokal untuk test
-sudo xbps-install --repository=hostdir/binpkgs letx
+# Install lokal
+xbps-rindex -a hostdir/binpkgs/letx-*.xbps
+sudo xbps-install --repository=/home/$USER/void-packages/hostdir/binpkgs letx
 
 # Verifikasi
 letx --help
+letx -v
 letx search discord
 ```
 
-### Checklist Sebelum Submit ke Void Packages
+### Checklist Sebelum Rilis
 
 - [ ] `checksum` sudah diupdate sesuai tarball terbaru
-- [ ] `revision` di-reset ke `1` jika `version` berubah
-- [ ] `revision` dinaikkan jika hanya template yang berubah (versi sama)
-- [ ] Semua dependensi Python (`python3-httpx`, `python3-rich`, `python3-typer`) tersedia di void-packages
-- [ ] `./xbps-src pkg letx` berhasil tanpa error
-- [ ] `./xbps-src show-files letx` menunjukkan `/usr/bin/letx` ada di output
-- [ ] Test manual: `letx search`, `letx info`, `letx list`, `letx get` berfungsi
+- [ ] `revision=1` jika `version` berubah; naikkan `revision` saja jika versi sama
+- [ ] `setup.py` shim ada di root repo (diperlukan untuk kompatibilitas build style xbps-src)
+- [ ] Semua runtime deps tersedia di Void repo: `python3-httpx`, `python3-rich`
+- [ ] `./xbps-src pkg letx` selesai tanpa error
+- [ ] `/usr/bin/letx` ada di output `./xbps-src show-files letx`
+- [ ] Test manual: `letx search`, `letx info`, `letx list`, `letx get` semua berfungsi
 
-## Roadmap
-
-### v0.1.0 — Fase Dasar
-- [x] `letx search` — pencarian package
-- [x] `letx info` — detail package
-- [x] `letx list` — daftar semua package
-- [x] `letx list --category` — filter by kategori
-- [x] `letx get` — download template lokal
-- [x] `letx update` — refresh cache index
-- [x] Cache lokal dengan TTL 1 jam
-- [x] Graceful degradation saat offline (pakai cache lama)
-- [x] Script instalasi bash
-- [x] Template xbps-src
-
-### v0.2.0 — Integrasi xbps-src
-- [ ] `letx build <package>` — build via `xbps-src pkg`
-- [ ] Auto-setup symlink ke `void-packages/srcpkgs/`
-- [ ] Deteksi dan konfigurasi `void-packages` directory
-- [ ] Progress build output real-time
-
-### v0.3.0 — Instalasi Penuh
-- [ ] `letx install <package>` — build + install via `xbps-install`
-- [ ] `letx remove <package>` — hapus template lokal
-- [ ] Manajemen dependensi antar package VUR
-
-### v1.0.0 — Fitur Lanjutan
-- [ ] `letx upgrade` — update semua template yang sudah di-get
-- [ ] Offline mode penuh
-- [ ] Konfigurasi user via `~/.config/letx/config.toml`
-- [ ] Shell completion (bash, zsh, fish)
-- [ ] Man page (`letx.1`)
+---
 
 ## Dependensi
 
 | Package | Versi | Fungsi |
 |---|---|---|
-| `typer[all]` | ≥ 0.12 | CLI framework (argument parsing, help text) |
-| `httpx` | ≥ 0.27 | HTTP client untuk fetch GitHub API |
+| `httpx` | ≥ 0.27 | HTTP client untuk GitHub API |
 | `rich` | ≥ 13.0 | Pretty terminal output (tabel, panel, warna) |
+| `argparse` | stdlib | Parsing argumen CLI (tidak perlu install) |
+
+**Build dependencies (xbps-src):**
+
+| Package | Fungsi |
+|---|---|
+| `python3-setuptools` | Build backend |
+| `python3-wheel` | Packaging wheel |
+| `python3-pip` | Instalasi |
 
 **Dev dependencies:**
+
 | Package | Fungsi |
 |---|---|
 | `pytest` | Test runner |
-| `pytest-httpx` | Mock HTTP requests untuk unit test |
-
-## Lisensi
-
-Let dirilis di bawah lisensi **BSD 2-Clause**. Lihat file `LICENSE` untuk detail lengkap.
-
-*Dokumentasi ini dibuat untuk Let v0.1.0*
-*VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*
+| `pytest-httpx` | Mock HTTP request untuk test |
 
 ---
-* @T4n-Labs
-* @Gh0sT4n
+
+## Roadmap
+
+### v0.1.0 — Fitur Dasar ✅
+- [x] `letx search` — pencarian by nama
+- [x] `letx info` — detail package
+- [x] `letx list` — list semua package
+- [x] `letx get` — download template lokal
+- [x] `letx update` — refresh cache index
+- [x] Cache lokal TTL 1 jam
+- [x] Graceful degradation offline
+- [x] Script instalasi bash
+- [x] Template xbps-src
+
+### v0.1.1 — Konversi Bahasa ✅
+- [x] Semua string user-facing dikonversi ke Bahasa Inggris
+- [x] CLI migrasi dari `typer` ke `argparse` (stdlib)
+- [x] Build system migrasi dari `hatchling` ke `setuptools`
+- [x] `setup.py` shim ditambahkan untuk kompatibilitas xbps-src
+- [x] Binary diubah dari `let` ke `letx` (hindari konflik bash builtin)
+
+### v0.1.2 — Enhanced Search & Info ✅
+- [x] Fix: false positive pada search (dibatasi ke `name` + `description`)
+- [x] `[ERROR] No Options` pada `letx`, `letx search`, `letx info`, `letx list` tanpa argumen
+- [x] `letx search "deskripsi"` — pencarian by deskripsi
+- [x] `letx search -t <pkg>` — cari template lokal (core → extra → multilib)
+- [x] `letx info all|core|extra|multilib` — 20 package terbaru
+- [x] `letx info -c <category>` — list lengkap per kategori
+- [x] `letx info -t <pkg>` — panel detail template lokal
+- [x] `letx list all|core|extra|multilib` — 20 package terbaru
+- [x] `letx list -c <category>` — list lengkap per kategori
+- [x] `letx list -p [category]` — statistik jumlah package
+
+### v0.2.0 — Integrasi xbps-src 🔜
+- [ ] `letx build <pkg>` — build via `xbps-src pkg`
+- [ ] Auto-symlink template ke `void-packages/srcpkgs/`
+- [ ] Deteksi dan konfigurasi direktori `void-packages`
+- [ ] Streaming output build secara real-time
+- [ ] `letx search -x <pkg>` — cari file `.xbps` di binpkgs lokal
+
+### v0.3.0 — Pipeline Instalasi Penuh 🔜
+- [ ] `letx install <pkg>` — build + install via `xbps-install`
+- [ ] `letx remove <pkg>` — hapus template lokal
+- [ ] Resolusi dependensi antar package VUR
+
+### v1.0.0 — Polish
+- [ ] `letx upgrade` — update semua template yang sudah di-get
+- [ ] Shell completion (bash, zsh, fish)
+- [ ] Man page (`letx.1`)
+- [ ] Konfigurasi user via `~/.config/letx/config.toml`
+
+---
+
+*Let-X v0.1.2 — VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*
