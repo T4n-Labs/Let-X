@@ -382,6 +382,7 @@
 │   │   ├──  fetch.py
 │   │   └──  index.py
 │   └──  utils
+│		├──  xbps.py
 │       └──  print.py
 ├──  LICENSE
 ├──  Plan.md
@@ -405,23 +406,383 @@
     
 ## Fitur
 
-1. letx binary-bootstrap → xbps-src binary-bootstrap
-2. letx bootsrap → xbps-src bootstrap
-3. letx bootstrap-update → xbps-src bootsrap-update
-4. letx chroot → xbps-src chroot
-5. letx consistency-check → xbps-src consistency-check
-6. letx clean-repocache → xbps-src clean-repocache
-7. letx fetch → xbps-src fetch <pkgname>
-8. letx extract → xbps-src extract <pkgname>
-9. letx patch → xbps-src patch <pkgname>
-10. letx configre → xbps-src configure <pkgname>
-11. letx build → xbps-src build <pkgname>
-12. letx check → xbps-src check <pkgname>
-13. letx install → xbps-src install <pkgname>
-14. letx pkg → xbps-src pkg <pkgname>
-15. letx clean → xbps-src clean <pkgname>
-16. letx list -x → xbps-src list
-17. letx remove → xbps-src remove
-18. letx remove-autodeps → xbps-src remove-autodeps
-19. letx purge-distfiles → xbps-src purge-distfiles
-20. letx ? → xbps-src show
+- letx -x binary-bootstrap 		    → xbps-src binary-bootstrap
+- letx -x bootsrap 				    → xbps-src bootstrap
+- letx -x bootstrap-update 		    → xbps-src bootsrap-update
+- letx -x consistency-check 		→ xbps-src consistency-check
+- letx -x chroot 					→ xbps-src chroot
+- letx -x clean-repocache			→ xbps-src clean-repocache
+- letx -x fetch 					→ xbps-src fetch <pkgname>
+- letx -x extract 				    → xbps-src extract <pkgname>
+- letx -x patch 					→ xbps-src patch <pkgname>
+- letx -x configre 				    → xbps-src configure <pkgname>
+- letx -x build 					→ xbps-src build <pkgname>
+- letx -x check 					→ xbps-src check <pkgname>
+- letx -x install 				    → xbps-src install <pkgname>
+- letx -x pkg 					    → xbps-src pkg <pkgname>
+- letx -x clean 					→ xbps-src clean <pkgname>
+- letx -x list					    → xbps-src list
+- letx -x remove 					→ xbps-src remove <pkgname>
+- letx -x remove-autodeps 		    → xbps-src remove-autodeps
+- letx -x purge-distfiles 		    → xbps-src purge-distfiles
+- letx -x show 					    → xbps-src show <pkgname>
+- letx -x show-avail 				→ xbps-src show-avail <pkgname>
+- letx -x show-build-deps			→ xbps-src show-build-deps <pkgname>
+- letx -x show-check-deps			→ xbps-src show-build-deps <pkgname>
+- letx -x show-deps				    → xbps-src show-deps <pkgname>
+- letx -x show-files				→ xbps-src show-files <pkgname>
+- letx -x show-hostmakedepens		→ xbps-src show-hostmakedepens <pkgname>
+- letx -x show-makedepens			→ xbps-src show-makedepens <pkgname>
+- letx -x show-options			    → xbps-src show-options <pkgname>
+- letx -x show-shlib-provides		→ xbps-src show-shlib-provides <pkgname>
+- letx -x show-shlib-requires       → xbps-src show-shlib-requires <pkgname>
+- letx -x show-var				    → xbps-src show-var <var>
+- letx -x show-repo-updates		    → xbps-src show-repo-updates
+- letx -x show-sys-updates		    → xbps-src show-sys-updates
+- letx -x show-local-updates		→ xbps-src show-local-updates
+- letx -x sort-dependecies		    → xbps-src sort-dependecies <pkg> <pkgN+1> ...
+- letx -x update-bulk				→ xbps-src update-bulk
+- letx -x update-sys				→ xbps-src updates-sys
+- letx -x update-local			    → xbps-src update-local
+- letx -x update-check			    → xbps-src update-check <pkgname>
+- letx -x update-hash-cache		    → xbps-src update-hash-cache
+- letx -x zap						→ xbps-src zap
+**OPTIONS**
+- letx -x -1						→ xbps-src -1
+- letx -x -A						→ xbps-src -A <host>
+- letx -x -a						→ xbps-src -a <target>
+- letx -x -b						→ xbps-src -b
+- letx -x -c						→ xbps-src -c <configuration>
+- letx -x -C						→ xbps-src -C
+- letx -x -E						→ xbps-src -E
+- letx -x -f						→ xbps-src -f
+- letx -x -G						→ xbps-src -G
+- letx -x -g						→ xbps-src -g
+- letx -x -H						→ xbps-src -H <hostdir>
+- letx -x -h						→ xbps-src -h
+- letx -x -I						→ xbps-src -I
+- letx -x -i						→ xbps-src -i
+- letx -x -j						→ xbps-src -j
+- letx -x -L						→ xbps-src -L
+- letx -x -m						→ xbps-src -m <masterdir>
+- letx -x -N						→ xbps-src -N
+- letx -x -n						→ xbps-src -n
+- letx -x -o						→ xbps-src -o <opt,~opt2,...>
+- letx -x -p						→ xbps-src -p <variable,variable2,...>
+- letx -x -Q						→ xbps-src -Q
+- letx -x -K						→ xbps-src -K
+- letx -x -q						→ xbps-src -q
+- letx -x -r						→ xbps-src -r <repo>
+- letx -x -s						→ xbps-src -s
+- letx -x -t						→ xbps-src -t
+- letx -x -v						→ xbps-src -v
+- letx -x -V						→ xbps-src -V
+
+
+## Informasi xbps-src
+
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Thu May 21 ] [ ~ ]
+└[T4n OS]->> xbps-src
+xbps-src: [options] <target> [arguments]
+
+Targets: (only one may be specified)
+
+binary-bootstrap
+    Install bootstrap packages from host repositories into <masterdir>.
+    If the optional '-A <arch>' flag is set, it will install bootstrap packages
+    from this architecture, and its required xbps utilities. The <masterdir> will
+    be initialized for chroot operations.
+
+bootstrap
+    Build and install from source the bootstrap packages into <masterdir>.
+    If the optional '-A <arch>' flag is set, it will build and install bootstrap
+    packages from this architecture, and its required xbps utilities. The <masterdir>
+    will be initialized for chroot operations.
+
+bootstrap-update
+    Updates bootstrap packages with latest versions available from registered
+    repositories in the XBPS configuration file.
+
+consistency-check
+    Runs a consistency check on all packages
+
+chroot
+    Enter to the chroot in <masterdir>.
+
+clean-repocache
+    Removes obsolete packages from <hostdir>/repocache.
+
+fetch <pkgname>
+    Download package source distribution file(s).
+
+extract <pkgname>
+    Extract package source distribution file(s) into the build directory.
+    By default set to <masterdir>/builddir.
+
+patch <pkgname>
+    Patch the package sources and perform other operations required to
+    prepare a package for configuring and building
+
+configure <pkgname>
+    Configure a package (fetch + extract + patch + configure).
+
+build <pkgname>
+    Build package source (fetch + extract + patch + configure + build).
+
+check <pkgname>
+    Run the package check(s) after building the package source.
+
+install <pkgname>
+    Install target package into <destdir> but not building the binary package
+    and not removing build directory for inspection purposes.
+
+pkg <pkgname>
+    Build binary package for <pkgname> and all required dependencies.
+
+clean <pkgname>
+    Removes auto dependencies, cleans up <masterdir>/builddir and <masterdir>/destdir.
+    If <pkgname> argument is specified, package files from <masterdir>/destdir and its
+    build directory in <masterdir>/buiddir are removed.
+
+list
+    Lists installed packages in <masterdir>.
+
+remove <pkgname>
+    Remove target package from <destdir>. If <pkgname>-<version> is not matched
+    from build template nothing is removed.
+
+remove-autodeps
+    Removes all package dependencies that were installed automatically.
+
+purge-distfiles
+    Removes all obsolete distfiles in <hostdir>/sources.
+
+show <pkgname>
+    Show information for the specified package.
+
+show-avail <pkgname>
+    Returns 0 if package can be built for the given architecture,
+    any other error otherwise.
+
+show-build-deps <pkgname>
+    Show required build dependencies for <pkgname>.
+
+show-check-deps <pkgname>
+    Show required check dependencies for <pkgname>.
+
+show-deps <pkgname>
+    Show required run-time dependencies for <pkgname>. Package must be
+    installed into destdir.
+
+show-files <pkgname>
+    Show files installed by <pkgname>. Package must be installed into destdir.
+
+show-hostmakedepends <pkgname>
+    Show required host build dependencies for <pkgname>.
+
+show-makedepends <pkgname>
+    Show required target build dependencies for <pkgname>.
+
+show-options <pkgname>
+    Show available build options by <pkgname>.
+
+show-shlib-provides <pkgname>
+    Show list of provided shlibs for <pkgname>. Package must be installed into destdir.
+
+show-shlib-requires <pkgname>
+    Show list of required shlibs for <pkgname>. Package must be installed into destdir.
+
+show-var <var>
+    Prints the value of <var> if it's defined in xbps-src.
+
+show-repo-updates
+    Prints the list of outdated packages in XBPS repositories.
+
+show-sys-updates
+    Prints the list of outdated packages in your system.
+
+show-local-updates
+    Prints the list of outdated packages in your local repositories.
+
+sort-dependencies <pkg> <pkgN+1> ...
+    Given a list of packages specified as additional arguments, a sorted dependency
+    list will be returned to stdout.
+
+update-bulk
+    Rebuilds all packages in the system repositories that are outdated.
+
+update-sys
+    Rebuilds all packages in your system that are outdated and updates them.
+
+update-local
+    Rebuilds all packages in your local repositories that are outdated.
+
+update-check <pkgname>
+    Check upstream site of <pkgname> for new releases.
+
+update-hash-cache
+    Update the hash cache with existing source distfiles.
+
+zap
+    Removes a masterdir but preserving ccache, distcc and host directories.
+
+Options:
+
+-1  If dependencies of target package are missing, fail instead of building them.
+
+-A <host>
+    Use this host machine. Automatically creates masterdir-<host> if it doesn't
+    already exist. Some host machines may require qemu-user and
+    binfmt-support if not natively supported by the processor. Supported hosts:
+
+	aarch64-musl
+	aarch64
+	armv5te-musl
+	armv5te
+	armv5tel-musl
+	armv5tel
+	armv6hf-musl
+	armv6hf
+	armv6l-musl
+	armv6l
+	armv7hf-musl
+	armv7hf
+	armv7l-musl
+	armv7l
+	i686-musl
+	i686
+	mips-musl
+	mipsel-musl
+	mipselhf-musl
+	mipshf-musl
+	ppc-musl
+	ppc
+	ppc64-musl
+	ppc64
+	ppc64le-musl
+	ppc64le
+	ppcle-musl
+	ppcle
+	riscv64-musl
+	riscv64
+	x86_64-musl
+	x86_64
+
+-a  <target>
+    Cross compile packages for this target machine. Supported targets:
+
+	aarch64-musl
+	aarch64
+	armv5te-musl
+	armv5te
+	armv5tel-musl
+	armv5tel
+	armv6hf-musl
+	armv6hf
+	armv6l-musl
+	armv6l
+	armv7hf-musl
+	armv7hf
+	armv7l-musl
+	armv7l
+	i686-musl
+	i686
+	mips-musl
+	mipsel-musl
+	mipselhf-musl
+	mipshf-musl
+	ppc-musl
+	ppc
+	ppc64-musl
+	ppc64
+	ppc64le-musl
+	ppc64le
+	ppcle-musl
+	ppcle
+	riscv64-musl
+	riscv64
+	x86_64-musl
+	x86_64
+
+-b  Build packages even if marked as broken, nocross, or excluded with archs.
+
+-c  <configuration>
+    If specified, etc/conf.<configuration> will be used as the primary config
+    file name; etc/conf will only be attempted if that does not exist.
+
+-C  Do not remove build directory, automatic dependencies and
+    package destdir after successful install.
+
+-E  If a binary package exists in a repository for the target package,
+    do not try to build it, exit immediately.
+
+-f  Force running the specified stage (configure/build/install/pkg)
+    even if it ran successfully.
+
+-G  Enable XBPS_USE_GIT_REVS (see etc/defaults.conf for more information).
+
+-g  Enable building -dbg packages with debugging symbols.
+
+-H  <hostdir>
+    Absolute path to a directory to be bind mounted at <masterdir>/host.
+    The host directory stores binary packages, sources and package dependencies
+    downloaded from remote repositories.
+    If unset defaults to void-packages/hostdir.
+
+-h  Usage output.
+
+-I  Ignore required dependencies, useful for extracting/fetching sources.
+
+-i  Make xbps-src internal errors non-fatal.
+
+-j  Number of parallel build jobs to use when building packages.
+
+-L  Disable ASCII colors.
+
+-m  <masterdir>
+    Absolute path to a directory to be used as masterdir.
+    The masterdir is the main directory to build/store/compile packages.
+    If unset defaults to void-packages/masterdir-<host>.
+
+-N  Disable use of remote repositories to resolve dependencies.
+
+-n  Disable syncing of remote repositories.
+
+-o  <opt,~opt2,...>
+    Enable or disable (prefixed with ~) package build options. If 'etc/conf'
+    already specifies some, it is merged. Keep in mind that these options
+    apply to all packages within the build, as in if a dependency needs to
+    be built, it will inherit these options.
+
+    Supported options can be shown with the 'show-options' target.
+
+-p  <variable,variable2,...>
+    For show target, show specified variables in addition to default ones.
+    Variable is split and each word is printed in separate line by default.
+    In order to print the whole value in one line, append asterisk to variable name.
+
+-Q  Enable running the check stage, for the target package only.
+
+-K  Enable running the check stage with longer tests.
+    Unlike -Q, this will also run the check stage on built dependencies.
+
+-q  Suppress informational output of xbps-src (build output is still printed).
+
+-r  <repo>
+    Use an alternative local repository to store generated binary packages.
+    If unset defaults to <hostdir>/binpkgs. If set the binpkgs will
+    be stored into <hostdir>/binpkgs/<repo>.
+    This alternative repository will also be used to resolve dependencies
+    with highest priority order than others.
+
+-s  Make some warnings into errors.
+
+-t  Create a temporary masterdir to not pollute the current one. Note that
+    the existing masterdir must be fully populated with binary-bootstrap first.
+    Once the target has finished, this temporary masterdir will be removed.
+    This flag requires xbps-uchroot(1), and won't work on filesystems that don't
+    support overlayfs.
+
+-v  Show verbose messages.
+
+-V  Print version of xbps, then exit.

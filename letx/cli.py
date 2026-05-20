@@ -171,17 +171,16 @@ def build_parser() -> argparse.ArgumentParser:
 # ─── Command Handlers ─────────────────────────────────────
 
 def cmd_search(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    # letx search -t <pkg>
-    if args.template:
-        return _search_local_template(args.template)
-
     # letx search (no keyword, no flags)
     if not args.keyword:
         console.print("[bold red][ERROR][/bold red] No Options\n")
         parser.parse_args(["search", "-h"])
         return 1
 
-    # letx search <keyword> [-c category]
+    # letx search -t <pkg>
+    if args.template:
+        return _search_local_template(args.template)
+
     print_info(
         f"Searching for '{args.keyword}'"
         + (f" [category: {args.category}]" if args.category else "")
