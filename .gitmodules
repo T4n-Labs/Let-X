@@ -1,0 +1,3 @@
+[submodule "letx/backend"]
+	path = letx/backend
+	url = https://github.com/void-linux/void-packages
