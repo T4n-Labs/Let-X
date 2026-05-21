@@ -3,6 +3,7 @@
 # install.sh — Let-X installer for Void Linux
 # Usage:
 #   sudo ./install.sh            → install
+#   sudo ./install.sh reinstall  → uninstall then reinstall
 #   sudo ./install.sh uninstall  → remove
 # ─────────────────────────────────────────────────────────────────
 
@@ -34,11 +35,34 @@ warn()    { echo -e "${YLW}!${RST} $*"; }
 error()   { echo -e "${RED}✘${RST} $*" >&2; }
 die()     { error "$*"; exit 1; }
 
-# ─── Banner Information ────────────────────────────────────────
+# ─── Banner ───────────────────────────────────────────────────────
+print_banner() {
+    local label="$1"
+    local inner=" Let-X ${APP_VERSION} — ${label} "
+    local width=${#inner}
+    local border
+    border=$(printf '═%.0s' $(seq 1 "${width}"))
+    echo -e "\n${BLU}╔${border}╗"
+    echo -e "║${inner}║"
+    echo -e "╚${border}╝${RST}\n"
+}
+
+print_success() {
+    local label="$1"
+    local inner="  ${label} Successful!  "
+    local width=${#inner}
+    local border
+    border=$(printf '═%.0s' $(seq 1 "${width}"))
+    echo -e "\n${GRN}╔${border}╗"
+    echo -e "║${inner}║"
+    echo -e "╚${border}╝${RST}"
+}
+
+# ─── Usage ────────────────────────────────────────────────────────
 usage() {
-	echo -e ""
+    echo -e ""
     echo -e "${GRN}Usage${RST}: sudo ./install.sh [OPTION]"
-    echo -e "${RED}Default${RST}: install (if no option given)"
+    echo -e "${YLW}Default${RST}: install (if no option given)"
     echo -e ""
     echo -e "${GRN}Options:${RST}"
     echo -e "  install    - Install Let-X (default)"
@@ -50,7 +74,7 @@ usage() {
 # ─── Check for root access ────────────────────────────────────────
 check_root() {
     if [[ "${EUID}" -ne 0 ]]; then
-		usage
+        usage
         die "This script must be run as root: sudo ./install.sh"
     fi
 }
@@ -120,7 +144,6 @@ build_wheel() {
         die "pyproject.toml not found in: ${SCRIPT_DIR}"
     fi
 
-    # Clean previous build
     rm -rf "${BUILD_DIR}"
     mkdir -p "${BUILD_DIR}"
 
@@ -163,8 +186,7 @@ install_wheel() {
 install_runtime_deps() {
     info "Installing runtime dependencies (httpx, rich) ..."
 
-    # Install into LIB_DIR so they are isolated from the system Python
-    pip3 install \
+    python3 -m pip install \
         --target "${LIB_DIR}" \
         --quiet \
         --no-cache-dir \
@@ -179,7 +201,6 @@ install_runtime_deps() {
 patch_wrapper() {
     local bin="${BIN_DIR}/${APP_NAME}"
 
-    # Remove any pip-generated entry point (may land in wrong path)
     rm -f "${bin}"
     rm -f "/usr/local/bin/${APP_NAME}"
 
@@ -225,8 +246,22 @@ cleanup_build() {
     rm -rf "${BUILD_DIR}"
 }
 
-# ─── Uninstall ────────────────────────────────────────────────────
-do_uninstall() {
+# ─── Core install steps (no banner, no root check) ───────────────
+_install_steps() {
+    check_deps
+    cleanup_old_binaries
+    clean_previous
+    build_wheel          # Phase 1
+    install_wheel        # Phase 2
+    install_runtime_deps # Phase 3
+    patch_wrapper
+    install_manpage
+    write_manifest
+    cleanup_build
+}
+
+# ─── Core uninstall steps (no root check) ────────────────────────
+_uninstall_steps() {
     info "Removing ${APP_NAME} from system ..."
 
     local removed=0
@@ -234,33 +269,34 @@ do_uninstall() {
     if [[ -f "${BIN_DIR}/${APP_NAME}" ]]; then
         rm -f "${BIN_DIR}/${APP_NAME}"
         success "Removed: ${BIN_DIR}/${APP_NAME}"
-        ((removed++))
+        removed=$((removed + 1))
     fi
 
     if [[ -d "${LIB_DIR}" ]]; then
         rm -rf "${LIB_DIR}"
         success "Removed: ${LIB_DIR}"
-        ((removed++))
+        removed=$((removed + 1))
     fi
 
     if [[ -d "${SHARE_DIR}" ]]; then
         rm -rf "${SHARE_DIR}"
         success "Removed: ${SHARE_DIR}"
-        ((removed++))
+        removed=$((removed + 1))
     fi
 
     if [[ -f "${MAN_DIR}/letx.1" ]]; then
         rm -f "${MAN_DIR}/letx.1"
         success "Removed: ${MAN_DIR}/letx.1"
-        ((removed++))
+        removed=$((removed + 1))
     fi
 
-    # Also clean leftover Python site-packages installed by wheel
+    # Clean leftover Python site-packages installed by wheel
     local site_pkg
     site_pkg=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib', vars={'base': '/usr', 'platbase': '/usr'}))" 2>/dev/null || true)
     if [[ -n "${site_pkg}" ]]; then
-        rm -rf "${site_pkg}/${PKG_NAME}" "${site_pkg}/${PKG_NAME}-"*.dist-info 2>/dev/null && \
-            success "Removed: ${site_pkg}/${PKG_NAME}" || true
+        if rm -rf "${site_pkg}/${PKG_NAME}" "${site_pkg}/${PKG_NAME}-"*.dist-info 2>/dev/null; then
+            success "Removed: ${site_pkg}/${PKG_NAME}"
+        fi
     fi
 
     if [[ "${removed}" -eq 0 ]]; then
@@ -272,45 +308,41 @@ do_uninstall() {
 
 # ─── Install ──────────────────────────────────────────────────────
 do_install() {
-    echo -e "\n${BLU}╔══════════════════════════════╗"
-    echo -e "║  Let-X ${APP_VERSION} — Installation  ║"
-    echo -e "╚══════════════════════════════╝${RST}\n"
-
+    print_banner "Installation"
     check_root
-    check_deps
-    cleanup_old_binaries
-    clean_previous
-    build_wheel       # Phase 1
-    install_wheel     # Phase 2
-    install_runtime_deps  # Phase 3
-    patch_wrapper
-    install_manpage
-    write_manifest
-    cleanup_build
+    _install_steps
+    print_success "Installation"
+    echo -e "\n  Help    : ${CYN}letx --help${RST}"
+    echo -e "  Version : ${CYN}letx --version${RST}\n"
+}
 
+# ─── Reinstall ────────────────────────────────────────────────────
+do_reinstall() {
+    print_banner "Reinstall"
+    check_root
+    _uninstall_steps
     echo ""
-    echo -e "${GRN}╔════════════════════════════╗"
-    echo -e "║  Installation Successful!  ║"
-    echo -e "╚════════════════════════════╝${RST}"
-    echo ""
-    echo -e "  Help    : ${CYN}letx -h, --help${RST}"
-    echo -e "  Version : ${CYN}letx -v, --version${RST}"
-    echo ""
+    _install_steps
+    print_success "Reinstall"
+    echo -e "\n  Help    : ${CYN}letx --help${RST}"
+    echo -e "  Version : ${CYN}letx --version${RST}\n"
+}
+
+# ─── Uninstall ────────────────────────────────────────────────────
+do_uninstall() {
+    check_root
+    _uninstall_steps
 }
 
 # ─── Entry point ──────────────────────────────────────────────────
 case "${1:-install}" in
     install)
         do_install
-        usage
         ;;
     reinstall)
-        check_root
-        do_uninstall
-        do_install
+        do_reinstall
         ;;
     uninstall)
-        check_root
         do_uninstall
         ;;
     *)
