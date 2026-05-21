@@ -1,3 +1,6 @@
+letx/backend/root-git/objects/pack/*.pack filter=lfs diff=lfs merge=lfs -text
+letx/backend/root-git/objects/pack/*.idx filter=lfs diff=lfs merge=lfs -text
+letx/backend/root-git/objects/pack/*.rev filter=lfs diff=lfs merge=lfs -text
 *.pack filter=lfs diff=lfs merge=lfs -text
 *.idx filter=lfs diff=lfs merge=lfs -text
 *.rev filter=lfs diff=lfs merge=lfs -text
