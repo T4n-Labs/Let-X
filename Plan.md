@@ -446,7 +446,7 @@
     ```
     
     
-## Fitur
+## Fitur Let-X dengan xbps-src
 
 - letx -x binary-bootstrap 		    → xbps-src binary-bootstrap
 - letx -x bootsrap 				    → xbps-src bootstrap
