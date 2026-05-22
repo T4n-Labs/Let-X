@@ -451,7 +451,7 @@ CLI Tool/VUR-Helper untuk mengakses VUR (Void User Repository) dengan Mudah untu
 │       └── user.md
 └── xbps-template/
     └── template
-    ```
+```
 
 ## Documentation
 

@@ -443,7 +443,7 @@
 │       └── user.md
 └── xbps-template/
     └── template
-    ```
+```
     
     
 ## Fitur Let-X dengan xbps-src
