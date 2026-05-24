@@ -1,8 +1,6 @@
 # Let-X — Developer Guide
 
-> Technical documentation for contributors and maintainers of **Let-X v0.1.2**.
-
----
+> Technical documentation for contributors and maintainers of **Let-X v0.2.0**.
 
 ## Table of Contents
 
@@ -10,87 +8,495 @@
 - [Directory Structure](#directory-structure)
 - [Module Reference](#module-reference)
 - [Data Flow](#data-flow)
-- [Setup Development Environment](#setup-development-environment)
+- [Development Environment Setup](#development-environment-setup)
 - [Code Conventions](#code-conventions)
-- [Adding a New Command](#adding-a-new-command)
+- [Adding New Commands](#adding-new-commands)
 - [Running Tests](#running-tests)
-- [Building the xbps Package](#building-the-xbps-package)
+- [Building xbps-src Package](#building-xbps-src-package)
 - [Dependencies](#dependencies)
 - [Roadmap](#roadmap)
 
----
-
 ## Project Architecture
 
-Let-X follows a strict **separation of concerns** — each layer has a single, well-defined responsibility:
+Let-X follows the **separation of concerns** principle — each layer has one clear responsibility:
+
 
 ```
+
 ┌──────────────────────────────────────────────┐
-│                 CLI (cli.py)                  │  argparse: parse args, route to handlers
+│               CLI (cli.py)                   │  argparse: parse args, routing to handler
 ├────────────────────┬─────────────────────────┤
-│       ops/         │         repo/            │  business logic vs data access
-│  search.py         │     index.py             │
-│  info.py           │     fetch.py             │
+│       ops/         │         repo/           │  business logic vs data access
+│  search.py         │     index.py            │
+│  info.py           │     fetch.py            │
 ├────────────────────┴─────────────────────────┤
-│              utils/print.py                   │  Rich: all terminal output
+│              utils/print.py                  │  Rich: all terminal output
 ├──────────────────────────────────────────────┤
-│               config.py                       │  constants, paths, URLs
+│               config.py                      │  constants, paths, URLs
 └──────────────────────────────────────────────┘
+
 ```
 
-**Key principles:**
-- `cli.py` contains no logic — it only orchestrates calls to `ops/` and `repo/`
-- `ops/` does not know about HTTP — that is `repo/`'s concern
-- `repo/` does not know about display — that is `utils/`'s concern
-- `config.py` does not import any other module from the project
+**Important principles:**
+- `cli.py` must not contain logic — only orchestrate to `ops/` and `repo/`
+- `ops/` knows nothing about HTTP — that is handled by `repo/`
+- `repo/` knows nothing about layout/display — that is handled by `utils/`
+- `config.py` does not import any module from this project
 
 ---
 
 ## Directory Structure
 
-```
-Let-X/
-├── letx/                         ← Main Python package
-│   ├── __init__.py               → Version and app name
-│   ├── cli.py                    → CLI entry point (argparse)
-│   ├── config.py                 → All constants and paths
-│   │
-│   ├── repo/                     → Data access layer (GitHub)
+```text
+.
+├── letx/                                   ← Main Python package
+│   ├── __init__.py                         → Version and app name
+│   ├── backend/
+│   │   ├── common/
+│   │   │   ├── build-helper/
+│   │   │   │   ├── cmake-wxWidgets-gtk3.sh
+│   │   │   │   ├── gir.sh
+│   │   │   │   ├── haskell.sh
+│   │   │   │   ├── meson.sh
+│   │   │   │   ├── numpy.sh
+│   │   │   │   ├── python3.sh
+│   │   │   │   ├── qemu.sh
+│   │   │   │   ├── qmake.sh
+│   │   │   │   ├── qmake6.sh
+│   │   │   │   └── rust.sh
+│   │   │   ├── build-profiles/
+│   │   │   │   ├── aarch64-musl.sh
+│   │   │   │   ├── aarch64.sh
+│   │   │   │   ├── armv6l-musl.sh
+│   │   │   │   ├── armv6l.sh
+│   │   │   │   ├── armv7l-musl.sh
+│   │   │   │   ├── armv7l.sh
+│   │   │   │   ├── bootstrap.sh
+│   │   │   │   ├── i686-musl.sh
+│   │   │   │   ├── i686.sh
+│   │   │   │   ├── ppc-musl.sh
+│   │   │   │   ├── ppc.sh
+│   │   │   │   ├── ppc64-musl.sh
+│   │   │   │   ├── ppc64.sh
+│   │   │   │   ├── ppc64le-musl.sh
+│   │   │   │   ├── ppc64le.sh
+│   │   │   │   ├── ppcle-musl.sh
+│   │   │   │   ├── ppcle.sh
+│   │   │   │   ├── README
+│   │   │   │   ├── riscv64-musl.sh
+│   │   │   │   ├── riscv64.sh
+│   │   │   │   ├── x86_64-musl.sh
+│   │   │   │   └── x86_64.sh
+│   │   │   ├── build-style/
+│   │   │   │   ├── cabal.sh
+│   │   │   │   ├── cargo.sh
+│   │   │   │   ├── cmake.sh
+│   │   │   │   ├── configure.sh
+│   │   │   │   ├── fetch.sh
+│   │   │   │   ├── gem.sh
+│   │   │   │   ├── gemspec.sh
+│   │   │   │   ├── gnu-configure.sh
+│   │   │   │   ├── gnu-makefile.sh
+│   │   │   │   ├── go.sh
+│   │   │   │   ├── haskell-stack.sh
+│   │   │   │   ├── meson.sh
+│   │   │   │   ├── perl-module.sh
+│   │   │   │   ├── perl-ModuleBuild.sh
+│   │   │   │   ├── python2-module.sh
+│   │   │   │   ├── python3-module.sh
+│   │   │   │   ├── python3-pep517.sh
+│   │   │   │   ├── qmake.sh
+│   │   │   │   ├── R-cran.sh
+│   │   │   │   ├── raku-dist.sh
+│   │   │   │   ├── README
+│   │   │   │   ├── ruby-module.sh
+│   │   │   │   ├── scons.sh
+│   │   │   │   ├── sip-build.sh
+│   │   │   │   ├── slashpackage.sh
+│   │   │   │   ├── texmf.sh
+│   │   │   │   ├── tree-sitter.sh
+│   │   │   │   ├── void-cross.sh
+│   │   │   │   ├── waf3.sh
+│   │   │   │   └── zig-build.sh
+│   │   │   ├── chroot-style/
+│   │   │   │   ├── bwrap.sh
+│   │   │   │   ├── ethereal.sh
+│   │   │   │   ├── README
+│   │   │   │   ├── uchroot.sh
+│   │   │   │   └── uunshare.sh
+│   │   │   ├── container/
+│   │   │   │   ├── Containerfile
+│   │   │   │   ├── docker-bake.hcl
+│   │   │   │   ├── noextract.conf
+│   │   │   │   ├── README.md
+│   │   │   │   └── setup.sh
+│   │   │   ├── cross-profiles/
+│   │   │   │   ├── aarch64-musl.sh
+│   │   │   │   ├── aarch64.sh
+│   │   │   │   ├── armv5te-musl.sh -> armv5tel-musl.sh
+│   │   │   │   ├── armv5te.sh -> armv5tel.sh
+│   │   │   │   ├── armv5tel-musl.sh
+│   │   │   │   ├── armv5tel.sh
+│   │   │   │   ├── armv6hf-musl.sh -> armv6l-musl.sh
+│   │   │   │   ├── armv6hf.sh -> armv6l.sh
+│   │   │   │   ├── armv6l-musl.sh
+│   │   │   │   ├── armv6l.sh
+│   │   │   │   ├── armv7hf-musl.sh -> armv7l-musl.sh
+│   │   │   │   ├── armv7hf.sh -> armv7l.sh
+│   │   │   │   ├── armv7l-musl.sh
+│   │   │   │   ├── armv7l.sh
+│   │   │   │   ├── i686-musl.sh
+│   │   │   │   ├── i686.sh
+│   │   │   │   ├── mips-musl.sh
+│   │   │   │   ├── mipsel-musl.sh
+│   │   │   │   ├── mipselhf-musl.sh
+│   │   │   │   ├── mipshf-musl.sh
+│   │   │   │   ├── ppc-musl.sh
+│   │   │   │   ├── ppc.sh
+│   │   │   │   ├── ppc64-musl.sh
+│   │   │   │   ├── ppc64.sh
+│   │   │   │   ├── ppc64le-musl.sh
+│   │   │   │   ├── ppc64le.sh
+│   │   │   │   ├── ppcle-musl.sh
+│   │   │   │   ├── ppcle.sh
+│   │   │   │   ├── README
+│   │   │   │   ├── riscv64-musl.sh
+│   │   │   │   ├── riscv64.sh
+│   │   │   │   ├── x86_64-musl.sh
+│   │   │   │   └── x86_64.sh
+│   │   │   ├── environment/
+│   │   │   │   ├── build/
+│   │   │   │   │   ├── bootstrap.sh -> ../configure/bootstrap.sh
+│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
+│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
+│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
+│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
+│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
+│   │   │   │   ├── build-style/
+│   │   │   │   │   ├── cabal.sh
+│   │   │   │   │   ├── cargo.sh
+│   │   │   │   │   ├── cmake.sh
+│   │   │   │   │   ├── gem.sh
+│   │   │   │   │   ├── gemspec.sh
+│   │   │   │   │   ├── go.sh
+│   │   │   │   │   ├── haskell-stack.sh
+│   │   │   │   │   ├── meson.sh
+│   │   │   │   │   ├── perl-module.sh
+│   │   │   │   │   ├── perl-ModuleBuild.sh
+│   │   │   │   │   ├── python2-module.sh
+│   │   │   │   │   ├── python3-module.sh
+│   │   │   │   │   ├── python3-pep517.sh
+│   │   │   │   │   ├── R-cran.sh
+│   │   │   │   │   ├── raku-dist.sh
+│   │   │   │   │   ├── ruby-module.sh
+│   │   │   │   │   ├── scons.sh
+│   │   │   │   │   ├── texmf/
+│   │   │   │   │   │   └── ownership.txt
+│   │   │   │   │   ├── texmf.sh
+│   │   │   │   │   ├── tree-sitter.sh
+│   │   │   │   │   ├── void-cross.sh
+│   │   │   │   │   ├── waf.sh
+│   │   │   │   │   ├── waf3.sh
+│   │   │   │   │   └── zig-build.sh
+│   │   │   │   ├── check/
+│   │   │   │   │   ├── bootstrap.sh -> ../configure/bootstrap.sh
+│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
+│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
+│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
+│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
+│   │   │   │   │   ├── no_display.sh
+│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
+│   │   │   │   ├── configure/
+│   │   │   │   │   ├── autoconf_cache/
+│   │   │   │   │   │   ├── aarch64-linux
+│   │   │   │   │   │   ├── arm-common
+│   │   │   │   │   │   ├── arm-linux
+│   │   │   │   │   │   ├── common-glibc
+│   │   │   │   │   │   ├── common-linux
+│   │   │   │   │   │   ├── endian-big
+│   │   │   │   │   │   ├── endian-little
+│   │   │   │   │   │   ├── ix86-common
+│   │   │   │   │   │   ├── mips-common
+│   │   │   │   │   │   ├── mips-linux
+│   │   │   │   │   │   ├── mipsel-linux
+│   │   │   │   │   │   ├── musl-linux
+│   │   │   │   │   │   ├── powerpc-common
+│   │   │   │   │   │   ├── powerpc-linux
+│   │   │   │   │   │   ├── powerpc32-linux
+│   │   │   │   │   │   ├── powerpc64-linux
+│   │   │   │   │   │   ├── riscv64-linux
+│   │   │   │   │   │   └── x86_64-linux
+│   │   │   │   │   ├── automake/
+│   │   │   │   │   │   ├── config.guess
+│   │   │   │   │   │   └── config.sub
+│   │   │   │   │   ├── bootstrap.sh
+│   │   │   │   │   ├── ccache.sh
+│   │   │   │   │   ├── cross.sh
+│   │   │   │   │   ├── debug-debug-prefix-map.sh
+│   │   │   │   │   ├── gccspecs/
+│   │   │   │   │   │   ├── hardened-cc1
+│   │   │   │   │   │   ├── hardened-ld
+│   │   │   │   │   │   └── hardened-mips-cc1
+│   │   │   │   │   ├── gnu-configure-args.sh
+│   │   │   │   │   ├── hardening.sh
+│   │   │   │   │   └── pkg-config.sh
+│   │   │   │   ├── extract/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── fetch/
+│   │   │   │   │   ├── fetch_cmd.sh
+│   │   │   │   │   └── misc.sh -> ../setup/misc.sh
+│   │   │   │   ├── install/
+│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
+│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
+│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
+│   │   │   │   │   ├── extglob.sh
+│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
+│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
+│   │   │   │   ├── patch/
+│   │   │   │   │   ├── bootstrap.sh -> ../configure/bootstrap.sh
+│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
+│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
+│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
+│   │   │   │   │   ├── gnu-configure-args.sh -> ../configure/gnu-configure-args.sh
+│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
+│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
+│   │   │   │   ├── pkg/
+│   │   │   │   │   └── extglob.sh -> ../install/extglob.sh
+│   │   │   │   ├── README
+│   │   │   │   ├── setup/
+│   │   │   │   │   ├── archive.sh
+│   │   │   │   │   ├── git.sh
+│   │   │   │   │   ├── install.sh
+│   │   │   │   │   ├── misc.sh
+│   │   │   │   │   ├── options.sh
+│   │   │   │   │   ├── python.sh
+│   │   │   │   │   ├── replace-interpreter.sh
+│   │   │   │   │   ├── sourcepkg.sh
+│   │   │   │   │   └── vsed.sh
+│   │   │   │   └── setup-subpkg/
+│   │   │   │       └── subpkg.sh
+│   │   │   ├── hooks/
+│   │   │   │   ├── do-build/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── do-check/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── do-configure/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── do-extract/
+│   │   │   │   │   └── 00-distfiles.sh
+│   │   │   │   ├── do-fetch/
+│   │   │   │   │   └── 00-distfiles.sh
+│   │   │   │   ├── do-install/
+│   │   │   │   ├── do-patch/
+│   │   │   │   │   └── 00-patches.sh
+│   │   │   │   ├── do-pkg/
+│   │   │   │   │   └── 00-gen-pkg.sh
+│   │   │   │   ├── post-build/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── post-check/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── post-configure/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── post-extract/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── post-fetch/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── post-install/
+│   │   │   │   │   ├── 00-compress-info-files.sh
+│   │   │   │   │   ├── 00-fixup-gir-path.sh
+│   │   │   │   │   ├── 00-libdir.sh
+│   │   │   │   │   ├── 00-uncompress-manpages.sh
+│   │   │   │   │   ├── 01-remove-misc.sh
+│   │   │   │   │   ├── 02-remove-libtool-archives.sh
+│   │   │   │   │   ├── 02-remove-perl-files.sh
+│   │   │   │   │   ├── 02-remove-python-bytecode-files.sh
+│   │   │   │   │   ├── 03-remove-empty-dirs.sh
+│   │   │   │   │   ├── 04-create-xbps-metadata-scripts.sh
+│   │   │   │   │   ├── 05-generate-gitrevs.sh
+│   │   │   │   │   ├── 06-strip-and-debug-pkgs.sh
+│   │   │   │   │   ├── 10-pkglint-devel-paths.sh
+│   │   │   │   │   ├── 11-pkglint-elf-in-usrshare.sh
+│   │   │   │   │   ├── 12-rename-python3-c-bindings.sh
+│   │   │   │   │   ├── 13-pkg-config-clean-xbps-cross-base-ref.sh
+│   │   │   │   │   ├── 14-fix-permissions.sh
+│   │   │   │   │   ├── 15-qt-private-api.sh
+│   │   │   │   │   ├── 80-prepare-32bit.sh
+│   │   │   │   │   ├── 98-shlib-provides.sh
+│   │   │   │   │   └── 99-pkglint-warn-cross-cruft.sh
+│   │   │   │   ├── post-patch/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── post-pkg/
+│   │   │   │   │   └── 00-register-pkg.sh
+│   │   │   │   ├── pre-build/
+│   │   │   │   │   └── 02-script-wrapper.sh -> ../pre-configure/02-script-wrapper.sh
+│   │   │   │   ├── pre-check/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── pre-configure/
+│   │   │   │   │   ├── 00-gnu-configure-asneeded.sh
+│   │   │   │   │   ├── 01-override-config.sh
+│   │   │   │   │   └── 02-script-wrapper.sh
+│   │   │   │   ├── pre-extract/
+│   │   │   │   ├── pre-fetch/
+│   │   │   │   ├── pre-install/
+│   │   │   │   │   ├── 00-libdir.sh
+│   │   │   │   │   ├── 02-script-wrapper.sh -> ../pre-configure/02-script-wrapper.sh
+│   │   │   │   │   └── 98-fixup-gir-path.sh
+│   │   │   │   ├── pre-patch/
+│   │   │   │   │   └── .empty
+│   │   │   │   ├── pre-pkg/
+│   │   │   │   │   ├── 03-restrict-py3-version.sh
+│   │   │   │   │   ├── 03-rewrite-python-shebang.sh
+│   │   │   │   │   ├── 04-generate-provides.sh
+│   │   │   │   │   ├── 04-generate-runtime-deps.sh
+│   │   │   │   │   ├── 05-generate-32bit-runtime-deps.sh
+│   │   │   │   │   ├── 06-verify-python-deps.sh
+│   │   │   │   │   ├── 90-set-timestamps.sh
+│   │   │   │   │   ├── 99-pkglint-subpkgs.sh
+│   │   │   │   │   ├── 99-pkglint.sh
+│   │   │   │   │   └── 999-collected-rdeps.sh
+│   │   │   │   └── README
+│   │   │   ├── options.description
+│   │   │   ├── repo-keys/
+│   │   │   │   ├── 3d:b9:c0:50:41:a7:68:4c:2e:2c:a9:a2:5a:04:b7:3f.plist
+│   │   │   │   └── 60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist
+│   │   │   ├── scripts/
+│   │   │   │   ├── check-custom-licenses
+│   │   │   │   ├── gen-wrap-distfiles.py
+│   │   │   │   ├── lint-commits
+│   │   │   │   ├── lint-conflicts
+│   │   │   │   ├── lint-version-change
+│   │   │   │   ├── lint2annotations.awk
+│   │   │   │   ├── parse-py-metadata.py
+│   │   │   │   ├── README.xbps-cycles.md
+│   │   │   │   └── xbps-cycles.py
+│   │   │   ├── shlibs
+│   │   │   ├── travis/
+│   │   │   │   ├── build.sh
+│   │   │   │   ├── changed_templates.sh
+│   │   │   │   ├── check-install.sh
+│   │   │   │   ├── fetch-xbps.sh
+│   │   │   │   ├── fetch-xtools.sh
+│   │   │   │   ├── license.lst
+│   │   │   │   ├── prepare.sh
+│   │   │   │   ├── set_mirror.sh
+│   │   │   │   ├── show_files.sh
+│   │   │   │   ├── verify-update-check.sh
+│   │   │   │   ├── xlint.sh
+│   │   │   │   └── xpkgdiff.sh
+│   │   │   ├── wrappers/
+│   │   │   │   ├── cross-cc
+│   │   │   │   ├── date.sh
+│   │   │   │   ├── install.sh
+│   │   │   │   ├── ldconfig.sh
+│   │   │   │   ├── strip.sh
+│   │   │   │   └── uname.sh
+│   │   │   └── xbps-src/
+│   │   │       ├── libexec/
+│   │   │       │   ├── build.sh
+│   │   │       │   ├── xbps-src-dobuild.sh
+│   │   │       │   ├── xbps-src-docheck.sh
+│   │   │       │   ├── xbps-src-doconfigure.sh
+│   │   │       │   ├── xbps-src-doextract.sh
+│   │   │       │   ├── xbps-src-dofetch.sh
+│   │   │       │   ├── xbps-src-doinstall.sh
+│   │   │       │   ├── xbps-src-dopatch.sh
+│   │   │       │   ├── xbps-src-dopkg.sh
+│   │   │       │   └── xbps-src-prepkg.sh
+│   │   │       └── shutils/
+│   │   │           ├── build_dependencies.sh
+│   │   │           ├── bulk.sh
+│   │   │           ├── chroot.sh
+│   │   │           ├── common.sh
+│   │   │           ├── consistency_check.sh
+│   │   │           ├── cross.sh
+│   │   │           ├── pkgtarget.sh
+│   │   │           ├── purge_distfiles.sh
+│   │   │           ├── show.sh
+│   │   │           ├── update_check.sh
+│   │   │           └── update_hash_cache.sh
+│   │   ├── COPYING
+│   │   ├── etc/
+│   │   │   ├── defaults.conf
+│   │   │   ├── defaults.virtual
+│   │   │   └── xbps.d/
+│   │   │       ├── repos-local-x86_64-multilib.conf
+│   │   │       ├── repos-local.conf
+│   │   │       ├── repos-remote-aarch64-musl.conf
+│   │   │       ├── repos-remote-aarch64.conf
+│   │   │       ├── repos-remote-musl.conf
+│   │   │       ├── repos-remote-x86_64-multilib.conf
+│   │   │       └── repos-remote.conf
+│   ├── root-git/
+│   │   ├── config
+│   │   ├── description
+│   │   ├── HEAD
+│   │   ├── hooks/
+│   │   │   ├── applypatch-msg.sample
+│   │   │   ├── commit-msg.sample
+│   │   │   ├── fsmonitor-watchman.sample
+│   │   │   ├── post-update.sample
+│   │   │   ├── pre-applypatch.sample
+│   │   │   ├── pre-commit.sample
+│   │   │   ├── pre-merge-commit.sample
+│   │   │   ├── pre-push.sample
+│   │   │   ├── pre-rebase.sample
+│   │   │   ├── pre-receive.sample
+│   │   │   ├── prepare-commit-msg.sample
+│   │   │   ├── push-to-checkout.sample
+│   │   │   ├── sendemail-validate.sample
+│   │   │   └── update.sample
+│   │   ├── index
+│   │   ├── info/
+│   │   │   └── exclude
+│   │   ├── logs/
+│   │   │   ├── HEAD
+│   │   │   └── refs/
+│   │   │       ├── heads/
+│   │   │       │   └── master
+│   │   │       └── remotes/
+│   │   │           └── origin/
+│   │   │               └── HEAD
+│   │   ├── README.md
+│   │   └── xbps-src
+│   ├── cli.py                      → CLI Entry point (argparse)
+│   ├── config.py                   → All constants and paths
+│   ├── ops/                        → Data access layer (GitHub)
 │   │   ├── __init__.py
-│   │   ├── index.py              → Fetch and cache packages.json
-│   │   └── fetch.py              → Download template folders via GitHub API
-│   │
-│   ├── ops/                      → Business logic layer
+│   │   ├── info.py                 → Fetch and cache packages.json
+│   │   └── search.py               → Download template folder via GitHub API
+│   ├── repo/                       → Business logic layer
 │   │   ├── __init__.py
-│   │   ├── search.py             → Search, list, count, local template lookup
-│   │   └── info.py               → Package detail + local template info
-│   │
+│   │   ├── fetch.py                → Search, list, count, local template lookup
+│   │   └── index.py                → Package details + local template info
 │   └── utils/
-│       ├── __init__.py
-│       └── print.py              → All Rich output (tables, panels, colors)
-│
+│   │   ├── __init__.py
+│		├── xbps.py
+│       └── print.py                → All Rich output (tables, panels, colors)
 ├── tests/
 │   ├── __init__.py
-│   └── test_search.py            → Unit tests
-│
-├── xbps-template/
-│   └── letx/
-│       └── template              → xbps-src package template
-│
-├── setup.py                      → Compatibility shim for xbps-src build style
-├── pyproject.toml                → Project metadata and dependencies
-├── install.sh                    → Bash installation script
+│   └── test_search.py              → Unit tests
+├── vdocs/
+│   ├── docs.md
+│   ├── EN/
+│   │   ├── dev.md
+│   │   └── user.md
+│   └── ID/
+│       ├── dev.md
+│       └── user.md
+├── xbps-template/                  → xbps-src template
+│   └── template
+├── pyproject.toml                  → Project metadata and dependencies
+├── install.sh                      → Bash installation script
 ├── LICENSE
 └── README.md
-```
 
----
+```
 
 ## Module Reference
 
 ### `config.py`
 
-Single source of truth for all constants. No other module should hardcode paths or URLs.
+The single source of truth for all constants. Other modules must not hardcode paths or URLs.
 
 ```python
 # Remote
@@ -108,21 +514,21 @@ TEMPLATE_DIRS = {
 }
 
 CACHE_TTL = 3600  # seconds (1 hour)
-```
 
----
+```
 
 ### `repo/index.py`
 
-Manages fetching and caching of `packages.json`.
+Manages fetching and caching `packages.json`.
 
-| Function | Signature | Description |
-|---|---|---|
-| `fetch_index` | `(force: bool = False) → list[Package]` | Get all packages (cache or GitHub) |
-| `get_package` | `(name: str) → Package \| None` | Find one package by exact name |
-| `cache_info` | `() → dict` | Current cache status |
+| Function      | Signature                               | Description                               |
+|---------------|-----------------------------------------|-------------------------------------------|
+| `fetch_index` | `(force: bool = False) → list[Package]` | Fetch all packages (from cache or GitHub) |
+| `get_package` | `(name: str) → Package \| None`         | Search for a single package by exact name |
+| `cache_info`  | `() → dict`                             | Current cache status                      |
 
 **Cache logic:**
+
 ```
 fetch_index()
     │
@@ -132,25 +538,25 @@ fetch_index()
     └─ Otherwise:
         ├─ GET packages.json from GitHub
         ├─ Write to ~/.cache/letx/packages.json
-        └─ Return fresh data
+        └─ Return new data
             │
             └─ If fetch FAILS but old cache exists:
-                └─ Return stale cache (graceful degradation)
-```
+                └─ Return old cache (graceful degradation)
 
----
+```
 
 ### `repo/fetch.py`
 
-Downloads package template folders from GitHub using the **GitHub Contents API** (no `git` or `svn` required).
+Downloads template folders from GitHub using the **GitHub Contents API** — no `git` or `svn` required.
 
-| Function | Signature | Description |
-|---|---|---|
-| `download_package` | `(pkg_path, category, pkg_name, progress_cb) → Path` | Download a full package folder |
-| `package_exists_locally` | `(category, pkg_name) → bool` | Check if template is already local |
-| `local_package_path` | `(category, pkg_name) → Path \| None` | Get local path if it exists |
+| Function                 | Signature                                            | Description                              |
+|--------------------------|------------------------------------------------------|------------------------------------------|
+| `download_package`       | `(pkg_path, category, pkg_name, progress_cb) → Path` | Download package folder from VUR         |
+| `package_exists_locally` | `(category, pkg_name) → bool`                        | Check if template already exists locally |
+| `local_package_path`     | `(category, pkg_name) → Path \| None`                | Local package path if it exists          |
 
 **Fetch strategy:**
+
 ```
 GitHub Contents API
 GET /repos/T4n-Labs/vur/contents/extra/discord
@@ -159,126 +565,90 @@ GET /repos/T4n-Labs/vur/contents/extra/discord
         │
         ├─ type == "file"  → download via raw.githubusercontent.com
         └─ type == "dir"   → recurse into subdirectory
+
 ```
-
-**Why GitHub Contents API instead of `git clone` or `svn`?**
-- No external tools required (`git`/`svn` not needed)
-- Downloads only the files needed, not the entire repo
-- More portable and predictable behavior
-- Trade-off: more HTTP requests for folders with many files
-
----
 
 ### `ops/search.py`
 
-All search and listing operations. Fully offline after the index is cached.
+All search and listing operations. Fully offline once the index is cached.
 
-| Function | Signature | Description |
-|---|---|---|
-| `search_packages` | `(keyword, category=None) → list[Package]` | Search by name or description |
-| `list_packages` | `(category=None) → list[Package]` | List all packages |
-| `latest_packages` | `(category=None, limit=20) → list[Package]` | Most recently added packages |
-| `count_packages` | `(category=None) → dict[str, int]` | Package counts per category |
-| `search_local_template` | `(pkg_name) → LocalTemplateResult` | Search local template dirs |
-| `available_categories` | `() → list[str]` | Unique categories in index |
+| Function                | Signature                                   | Description                        |
+|-------------------------|---------------------------------------------|------------------------------------|
+| `search_packages`       | `(keyword, category=None) → list[Package]`  | Search by name or description      |
+| `list_packages`         | `(category=None) → list[Package]`           | List all packages                  |
+| `latest_packages`       | `(category=None, limit=20) → list[Package]` | Last added packages                |
+| `count_packages`        | `(category=None) → dict[str, int]`          | Number of packages per category    |
+| `search_local_template` | `(pkg_name) → LocalTemplateResult`          | Search template in local directory |
+| `available_categories`  | `() → list[str]`                            | Unique categories in index         |
 
-**Search fields (v0.1.2 fix):**
+**Search fields (fix v0.1.2):**
+
 ```python
-# Only name and description — eliminates false positives from maintainer/homepage
+# Only name and description — no false positives from maintainer/homepage
 _SEARCH_FIELDS = ("name", "description")
+
 ```
 
 **Search result ranking:**
+
 ```python
 def _rank(pkg) -> int:
     name = pkg["name"].lower()
-    if name == keyword:       return 0   # exact match → first
+    if name == keyword:       return 0   # exact match → highest priority
     if name.startswith(kw):   return 1   # prefix match
-    if kw in name:            return 2   # contains in name
-    return 3                             # matched in description
+    if kw in name:            return 2   # contains match
+    return 3                             # match in description
+
 ```
 
-**Local template search — core → extra → multilib:**
+**Local template lookup order — core → extra → multilib:**
+
 ```python
 search_order = ["core", "extra", "multilib"]
 for cat in search_order:
     pkg_dir = TEMPLATE_DIRS[cat] / pkg_name
     if pkg_dir.exists():
-        return LocalTemplateResult(found=True, category=cat, path=pkg_dir, files=[...])
-return LocalTemplateResult(found=False, pkg_name=pkg_name)
+        return LocalTemplateResult(found=True, category=cat, path=pkg_dir, ...)
+return LocalTemplateResult(found=False, ...)
+
 ```
-
-**`LocalTemplateResult` attributes:**
-
-| Attribute | Type | Description |
-|---|---|---|
-| `found` | `bool` | Whether the template was found |
-| `pkg_name` | `str` | Package name searched |
-| `category` | `str \| None` | Category where it was found |
-| `path` | `Path \| None` | Full local path to the template directory |
-| `files` | `list[str]` | Relative paths of all files in the template |
-
----
 
 ### `ops/info.py`
 
-| Function | Signature | Description |
-|---|---|---|
-| `get_info` | `(name: str) → dict \| None` | Package details from index + local status |
-| `get_local_template_info` | `(pkg_name: str) → dict` | Local template details enriched with VUR data |
-
-`get_info` return structure:
-```python
-{
-    # all fields from packages.json
-    "name": "discord",
-    "category": "extra",
-    "version": "0.0.134",
-    "description": "Chat and VOIP application",
-    "homepage": "...",
-    "maintainer": "...",
-    "path": "extra/discord",
-    # plus local status
-    "installed_locally": True,
-    "local_path": "/home/user/.config/letx/extra/discord",
-}
-```
-
----
+| Function                  | Signature                    | Description                    |
+|---------------------------|------------------------------|--------------------------------|
+| `get_info`                | `(name: str) → dict \| None` | Package details + local status |
+| `get_local_template_info` | `(pkg_name: str) → dict`     | Local template info + VUR data |
 
 ### `utils/print.py`
 
-All terminal output must go through this module. Never use `print()` directly in other modules.
+All terminal output must go through this module. **Never `print()` directly from other modules.**
 
-| Function | Description |
-|---|---|
-| `print_package_table(packages, title, show_desc)` | Rich table for package lists |
-| `print_package_info(info)` | Rich panel for single package detail |
-| `print_local_template_info(info)` | Rich panel for local template detail |
-| `print_package_counts(counts, category)` | Statistics table |
-| `print_success(msg)` | `✔ message` (green) |
-| `print_error(msg)` | `✘ message` (red) |
-| `print_info(msg)` | `→ message` (cyan) |
-| `print_warn(msg)` | `! message` (yellow) |
+| Function                                          | Description                           |
+|---------------------------------------------------|---------------------------------------|
+| `print_package_table(packages, title, show_desc)` | Rich table for package listing        |
+| `print_package_info(info)`                        | Rich panel for single package details |
+| `print_local_template_info(info)`                 | Rich panel for local templates        |
+| `print_package_counts(counts, category)`          | Statistics table                      |
+| `print_success(msg)`                              | `✔ message` (green)                   |
+| `print_error(msg)`                                | `✘ message` (red)                     |
+| `print_info(msg)`                                 | `→ message` (cyan)                    |
+| `print_warn(msg)`                                 | `! message` (yellow)                  |
 
-**`print_package_table` — `show_desc` parameter:**
+**Color themes:**
 
-When `show_desc=True`, a Description column is added to the table. This is automatically set to `True` for description-based searches, `letx info -c`, and `letx list` scope commands.
-
-**Color theme:**
 ```python
 C_NAME    = "bold cyan"     # package name
 C_VER     = "green"         # version
 C_CAT     = "yellow"        # category
 C_DESC    = "dim white"     # description
 C_MAINT   = "dim white"     # maintainer
-C_LOCAL   = "bold green"    # available locally
-C_MISSING = "dim red"       # not fetched yet
+C_LOCAL   = "bold green"    # locally available
+C_MISSING = "dim red"       # not downloaded yet
 C_PATH    = "cyan"          # file path
 C_FILE    = "dim cyan"      # file listing
-```
 
----
+```
 
 ## Data Flow
 
@@ -290,42 +660,21 @@ letx search discord
     ▼
 cli.py:cmd_search()
     │
-    ├─ args.template set? → _search_local_template(args.template)
-    │                           │
-    │                           └─ ops/search.py:search_local_template()
-    │                           └─ utils/print.py:print_local_template_info()
+    ├─ args.template? → _search_local_template()
+    │                       → ops/search.py:search_local_template()
+    │                       → utils/print.py:print_local_template_info()
     │
-    ├─ no keyword → [ERROR] No Options
+    ├─ keyword exists → ops/search.py:search_packages()
+    │                    │
+    │                    ├─ repo/index.py:fetch_index()
+    │                    │       │
+    │                    │       ├─ cache valid → read file
+    │                    │       └─ expired     → GET GitHub → write cache
+    │                    │
+    │                    └─ filter (name + description) → sort by rank
     │
-    └─ keyword present:
-        print_info("Searching for ...")
-        ops/search.py:search_packages(keyword, category)
-            │
-            └─ repo/index.py:fetch_index()
-                    ├─ cache valid → read ~/.cache/letx/packages.json
-                    └─ expired     → GET GitHub → write cache → return
-            │
-            └─ for each pkg: check name + description fields
-            └─ sort by _rank()
-        │
-        └─ utils/print.py:print_package_table(results, show_desc)
-```
+    └─ utils/print.py:print_package_table()
 
-### `letx info all`
-
-```
-letx info all
-    │
-    ▼
-cli.py:cmd_info()
-    │
-    └─ name in ("all","core","extra","multilib") → _info_top20(cat, label)
-            │
-            └─ ops/search.py:latest_packages(category, limit=20)
-                    │
-                    └─ list_packages() → return last 20 (insertion order = newest)
-            │
-            └─ utils/print.py:print_package_table(packages, show_desc=True)
 ```
 
 ### `letx list -p`
@@ -336,11 +685,12 @@ letx list -p
     ▼
 cli.py:cmd_list()
     │
-    └─ args.package is not None → count_packages(cat=None)
-            │
-            └─ fetch_index() → {total: N, core: N, extra: N, multilib: N}
+    ├─ ops/search.py:count_packages()
+    │       │
+    │       └─ fetch_index() → count per category
     │
-    └─ utils/print.py:print_package_counts(counts)
+    └─ utils/print.py:print_package_counts()
+
 ```
 
 ### `letx get <pkg>`
@@ -351,33 +701,28 @@ letx get discord
     ▼
 cli.py:cmd_get()
     │
-    ├─ ops/info.py:get_info("discord")
-    │       └─ repo/index.py:get_package() + repo/fetch.py:package_exists_locally()
+    ├─ ops/info.py:get_info()            → check index + local status
     │
-    ├─ Not found → print_error(), return 1
-    ├─ Already local & no --force → print_warn(), return 0
+    ├─ Already local & no --force?       → print_warn(), exit 0
     │
-    └─ repo/fetch.py:download_package(path, category, name, progress_cb)
-            │
-            ├─ clean destination if exists
-            └─ _fetch_dir() recursively:
-                    ├─ GET GitHub Contents API for directory listing
-                    ├─ for files  → GET raw.githubusercontent.com → write bytes
-                    └─ for dirs   → recurse
+    └─ repo/fetch.py:download_package()
+    │       ││
+    │       └─ GitHub Contents API (recursive)
+    │               ├─ each file → GET raw.githubusercontent.com
+    │               └─ write to ~/.config/letx/<category>/<pkg>/
     │
-    └─ utils/print.py:print_success(dest)
+    └─ utils/print.py:print_success()
+
 ```
 
----
-
-## Setup Development Environment
+## Development Environment Setup
 
 ```bash
-# 1. Fork and clone the repo
-git clone https://github.com/<your-username>/Let-X
+# 1. Fork and clone repo
+git clone https://github.com/<username>/Let-X
 cd Let-X
 
-# 2. Create a virtual environment
+# 2. Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
@@ -387,18 +732,19 @@ pip install -e ".[dev]"
 # 4. Verify
 letx --help
 pytest tests/ -v
-```
 
----
+```
 
 ## Code Conventions
 
 **Naming:**
-- Modules and functions: `snake_case`
-- Constants in `config.py`: `SCREAMING_SNAKE_CASE`
-- Type hints required on all public functions
+
+* Modules and functions: `snake_case`
+* Constants in `config.py`: `SCREAMING_SNAKE_CASE`
+* Type hints are required for all public functions
 
 **Import order:**
+
 ```python
 # 1. stdlib
 import sys
@@ -412,9 +758,11 @@ from rich.console import Console
 # 3. internal (always absolute imports)
 from letx.config import CACHE_DIR
 from letx.repo.index import fetch_index
+
 ```
 
-**Docstrings — required on all public functions:**
+**Docstring — required for all public functions:**
+
 ```python
 def search_packages(keyword: str, category: str | None = None) -> list[Package]:
     """
@@ -426,52 +774,31 @@ def search_packages(keyword: str, category: str | None = None) -> list[Package]:
         category: optional filter ("core"|"extra"|"multilib")
 
     Returns:
-        Matching packages sorted by relevance (exact name first).
-
-    Raises:
-        RuntimeError: If the index fetch fails and no local cache exists.
+        Matching packages sorted by relevance.
     """
+
 ```
 
-**Error handling pattern:**
-```python
-# In ops/ and repo/ — raise exceptions
-def fetch_index(force: bool = False) -> list[Package]:
-    ...
-    raise RuntimeError(f"Failed to fetch index: {e}") from e
+## Adding New Commands
 
-# In cli.py — catch and convert to exit codes
-try:
-    results = search_packages(keyword)
-except RuntimeError as e:
-    print_error(str(e))
-    return 1
-```
+1. Add subparser in `cli.py:build_parser()`
+2. Add handler `cmd_<name>()` in `cli.py`
+3. Register it in the dispatch block of `main()`
+4. Business logic goes into `ops/` (not in `cli.py`)
+5. Data access goes into `repo/` (not in `ops/`)
+6. Output must always use `utils/print.py`
+7. Write tests in `tests/`
 
----
-
-## Adding a New Command
-
-1. Add a subparser in `cli.py:build_parser()`
-2. Add a handler function `cmd_<name>(args) -> int` in `cli.py`
-3. Register it in the `main()` dispatch block
-4. Business logic goes in a new `ops/<name>.py` module
-5. All output via `utils/print.py`
-6. Write tests in `tests/test_<name>.py`
-
-**Full skeleton example — `letx remove`:**
+**Skeleton for new command:**
 
 ```python
-# 1. In build_parser():
-p_remove = sub.add_parser(
-    "remove",
-    help="Remove a locally downloaded template",
-)
+# In build_parser():
+p_remove = sub.add_parser("remove", help="Remove a local template")
 p_remove.add_argument("name", help="Package name")
 
-# 2. Handler in cli.py:
+# Handler:
 def cmd_remove(args: argparse.Namespace) -> int:
-    from letx.ops.remove import remove_template
+    from letx.ops.remove import remove_template   # new module
     removed = remove_template(args.name)
     if removed:
         print_success(f"Template '{args.name}' removed.")
@@ -479,37 +806,24 @@ def cmd_remove(args: argparse.Namespace) -> int:
     print_error(f"Template '{args.name}' not found locally.")
     return 1
 
-# 3. In main():
+# In main():
 elif args.command == "remove":
     sys.exit(cmd_remove(args))
 
-# 4. New file: letx/ops/remove.py
-from letx.config import TEMPLATE_DIRS
-import shutil
-
-def remove_template(pkg_name: str) -> bool:
-    """Remove a locally stored template. Returns True if removed."""
-    for cat, base_dir in TEMPLATE_DIRS.items():
-        pkg_dir = base_dir / pkg_name
-        if pkg_dir.exists():
-            shutil.rmtree(pkg_dir)
-            return True
-    return False
 ```
-
----
 
 ## Running Tests
 
 ```bash
-# Run all tests
+# All tests
 pytest tests/ -v
 
-# Run a specific file
+# Specific file
 pytest tests/test_search.py -v
 
 # With coverage report
 pytest tests/ --cov=letx --cov-report=term-missing
+
 ```
 
 Tests use `monkeypatch` — no internet connection required:
@@ -517,75 +831,50 @@ Tests use `monkeypatch` — no internet connection required:
 ```python
 @pytest.fixture
 def fake_cache(tmp_path, monkeypatch):
-    """Replace PACKAGES_CACHE with a temp file containing mock data."""
     cache_file = tmp_path / "packages.json"
     cache_file.write_text(json.dumps(MOCK_PACKAGES))
     monkeypatch.setattr("letx.repo.index.PACKAGES_CACHE", cache_file)
-    monkeypatch.setattr("letx.repo.index.CACHE_TTL", 9999)  # always fresh
-    return cache_file
+    monkeypatch.setattr("letx.repo.index.CACHE_TTL", 9999)
+
 ```
 
 **Available tests:**
 
-| Test | Description |
-|---|---|
-| `test_fetch_index_from_cache` | Index is read from local cache |
-| `test_get_package_found` | Search for an existing package |
-| `test_get_package_case_insensitive` | `DISCORD` == `discord` |
-| `test_get_package_not_found` | Missing package → returns `None` |
-| `test_search_by_name` | Exact name match |
-| `test_search_partial` | Partial name match |
-| `test_search_with_category_filter` | Category filtering works |
-| `test_search_no_results` | No match → empty list |
-| `test_list_all` | List returns all packages |
-| `test_list_by_category` | List filtered by category |
-| `test_available_categories` | Returns unique category set |
+| Test                                | Description                       |
+|-------------------------------------|-----------------------------------|
+| `test_fetch_index_from_cache`       | Index read from local cache       |
+| `test_get_package_found`            | Search existing package           |
+| `test_get_package_case_insensitive` | `DISCORD` == `discord`            |
+| `test_get_package_not_found`        | Package not found → return `None` |
+| `test_search_by_name`               | Exact name match search           |
+| `test_search_partial`               | Partial name match search         |
+| `test_search_with_category_filter`  | Filter by category search         |
+| `test_search_no_results`            | No results → empty list           |
+| `test_list_all`                     | List all packages                 |
+| `test_list_by_category`             | List filtered by category         |
+| `test_available_categories`         | Return set of unique categories   |
 
----
+## Building xbps-src Package
 
-## Building the xbps Package
-
-### Setup
+### Preparation
 
 ```bash
-git clone https://github.com/void-linux/void-packages ~/void-packages
+git clone https://github.com/void-linux/void-packagees
 cd ~/void-packages
 ./xbps-src binary-bootstrap
 
 cp -r /path/to/Let-X/xbps-template/letx srcpkgs/letx
+
 ```
 
-### xbps-src Template Overview
-
-```bash
-pkgname=letx
-build_style=            # no build_style — using do_build/do_install manually
-hostmakedepends="python3 python3-pip python3-setuptools python3-wheel"
-depends="python3 python3-httpx python3-rich"
-
-do_build() {
-    # Build wheel from pyproject.toml
-    python3 -m pip wheel --no-build-isolation --no-deps --wheel-dir dist .
-}
-
-do_install() {
-    # Install wheel to DESTDIR — creates /usr/bin/letx automatically
-    python3 -m pip install --no-build-isolation --no-deps --no-index \
-        --prefix=/usr --root="${DESTDIR}" dist/*.whl
-    vlicense LICENSE
-    vdoc README.md
-}
-```
-
-> **Note:** `setup.py` shim is required in the repo root. Without it, `do_build` will fall back to `python3 setup.py build` which fails on `pyproject.toml`-only projects.
-
-### Update Checksum (Required on Every Release)
+### Update Checksum (Required for Every Release)
 
 ```bash
 cd ~/void-packages
 ./xbps-src fetch letx
 sha256sum $XBPS_SRCDISTDIR/letx-0.1.2.tar.gz
-# → copy the hash into the 'checksum' field in srcpkgs/letx/template
+# → copy hash to the 'checksum' field in srcpkgs/letx/template
+
 ```
 
 ### Build and Test
@@ -596,108 +885,45 @@ cd ~/void-packages
 # Build
 ./xbps-src pkg letx
 
-# Inspect package contents
+# Check package contents
 ./xbps-src show-files letx
 
-# Register and install locally
+# Local install
 xbps-rindex -a hostdir/binpkgs/letx-*.xbps
 sudo xbps-install --repository=/home/$USER/void-packages/hostdir/binpkgs letx
 
-# Verify
+# Verification
 letx --help
 letx -v
 letx search discord
+
 ```
-
-### Pre-submission Checklist
-
-- [ ] `checksum` updated to match the new tarball
-- [ ] `revision=1` if `version` changed; increment `revision` only if version unchanged
-- [ ] `setup.py` shim is present in the repo root
-- [ ] All runtime deps available in Void repo: `python3-httpx`, `python3-rich`
-- [ ] `python3-packaging-bootstrap` added to `hostmakedepends` (suppresses packaging warning)
-- [ ] `./xbps-src pkg letx` completes without errors
-- [ ] `/usr/bin/letx` present in `./xbps-src show-files letx` output
-- [ ] Manual test: `letx search`, `letx info`, `letx list`, `letx get` all work correctly
-
----
 
 ## Dependencies
 
-| Package | Version | Purpose |
-|---|---|---|
-| `httpx` | ≥ 0.27 | HTTP client for GitHub API requests |
-| `rich` | ≥ 13.0 | Pretty terminal output (tables, panels, colors) |
-| `argparse` | stdlib | CLI argument parsing (no install needed) |
+| Package    | Version | Function                                       |
+|------------|---------|------------------------------------------------|
+| `httpx`    | ≥ 0.27  | HTTP client for GitHub API                     |
+| `rich`     | ≥ 13.0  | Pretty terminal output (tables, panels, color) |
+| `argparse` | stdlib  | CLI argument parsing (no installation needed)  |
 
 **Build dependencies (xbps-src):**
 
-| Package | Purpose |
-|---|---|
-| `python3-setuptools` | Build backend |
-| `python3-wheel` | Wheel packaging |
-| `python3-pip` | Installation into DESTDIR |
-| `python3-packaging-bootstrap` | Dependency verification during packaging |
+| Package              | Function        |
+|----------------------|-----------------|
+| `python3-setuptools` | Build backend   |
+| `python3-wheel`      | Packaging wheel |
+| `python3-pip`        | Installation    |
 
 **Dev dependencies:**
 
-| Package | Purpose |
-|---|---|
-| `pytest` | Test runner |
-| `pytest-httpx` | Mock HTTP requests in unit tests |
+| Package        | Function                     |
+|----------------|------------------------------|
+| `pytest`       | Test runner                  |
+| `pytest-httpx` | Mock HTTP requests for tests |
+
+*Let-X v0.2.0 — VUR: [github.com/T4n-Labs/vur*](https://github.com/T4n-Labs/vur)
 
 ---
 
-## Roadmap
-
-### v0.1.0 — Core Features ✅
-- [x] `letx search` — search by name
-- [x] `letx info` — package details
-- [x] `letx list` — list all packages
-- [x] `letx get` — download template locally
-- [x] `letx update` — refresh index cache
-- [x] Local cache with 1-hour TTL
-- [x] Graceful offline degradation (use stale cache)
-- [x] Bash installation script
-- [x] xbps-src package template
-
-### v0.1.1 — English Conversion ✅
-- [x] All user-facing strings converted from Indonesian to English
-- [x] CLI migrated from `typer` to `argparse` (stdlib, no extra deps)
-- [x] Build system migrated from `hatchling` to `setuptools`
-- [x] `setup.py` shim added for xbps-src compatibility
-- [x] Binary renamed from `let` to `letx` (avoid bash builtin conflict)
-
-### v0.1.2 — Enhanced Search & Info ✅
-- [x] Fix: search false positives (restrict fields to `name` + `description`)
-- [x] `[ERROR] No Options` on bare commands
-- [x] `letx search "description"` — search by description field
-- [x] `letx search -t <pkg>` — find local templates (core → extra → multilib)
-- [x] `letx info all|core|extra|multilib` — top 20 most recently added
-- [x] `letx info -c <category>` — full list by category
-- [x] `letx info -t <pkg>` — local template detail panel
-- [x] `letx list all|core|extra|multilib` — top 20 most recently added
-- [x] `letx list -c <category>` — full list by category
-- [x] `letx list -p [category]` — package count statistics
-
-### v0.2.0 — xbps-src Integration 🔜
-- [ ] `letx build <pkg>` — build via `xbps-src pkg`
-- [ ] Auto-symlink template to `void-packages/srcpkgs/`
-- [ ] Detect and configure `void-packages` directory
-- [ ] Real-time build output streaming
-- [ ] `letx search -x <pkg>` — search built `.xbps` files in local binpkgs
-
-### v0.3.0 — Full Install Pipeline 🔜
-- [ ] `letx install <pkg>` — build + install via `xbps-install`
-- [ ] `letx remove <pkg>` — remove local template
-- [ ] Dependency resolution between VUR packages
-
-### v1.0.0 — Polish
-- [ ] `letx upgrade` — update all locally fetched templates
-- [ ] Shell completion (bash, zsh, fish)
-- [ ] Man page (`letx.1`)
-- [ ] User config via `~/.config/letx/config.toml`
-
----
-
-*Let-X v0.1.2 — VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*
+[@T4n-Labs](https://t4n-labs.github.io/site) · [@Gh0sT4n](https://gh0st4n.github.io/site)
