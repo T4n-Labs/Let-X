@@ -12,7 +12,7 @@ set -euo pipefail
 # ─── Constants ────────────────────────────────────────────────────
 APP_NAME="letx"
 PKG_NAME="letx"
-APP_VERSION="0.1.1"
+APP_VERSION="0.2.0"
 INSTALL_PREFIX="/usr"
 BIN_DIR="${INSTALL_PREFIX}/bin"
 LIB_DIR="${INSTALL_PREFIX}/lib/${APP_NAME}"
@@ -20,6 +20,12 @@ SHARE_DIR="${INSTALL_PREFIX}/share/${APP_NAME}"
 MAN_DIR="${INSTALL_PREFIX}/share/man/man1"
 BUILD_DIR="/tmp/letx-build"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Akan di-set oleh detect_real_user()
+REAL_USER=""
+REAL_HOME=""
+REAL_UID=""
+REAL_GID=""
 
 # ─── Colors ───────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -77,6 +83,31 @@ check_root() {
         usage
         die "This script must be run as root: sudo ./install.sh"
     fi
+}
+
+# ─── Detect real user (the one who ran sudo) ─────────────────────
+#
+# Installer berjalan sebagai root, tapi user dirs (~/.config/letx/)
+# harus milik user asli agar xbps-src bisa dipakai tanpa root.
+# $SUDO_USER di-set otomatis oleh sudo, fallback ke $USER jika
+# script dijalankan langsung sebagai root (contoh: di container).
+#
+detect_real_user() {
+    REAL_USER="${SUDO_USER:-${USER:-root}}"
+
+    if [[ "${REAL_USER}" == "root" ]]; then
+        REAL_HOME="/root"
+    else
+        REAL_HOME="$(getent passwd "${REAL_USER}" | cut -d: -f6)"
+        if [[ -z "${REAL_HOME}" ]]; then
+            REAL_HOME="/home/${REAL_USER}"
+        fi
+    fi
+
+    REAL_UID="$(id -u "${REAL_USER}" 2>/dev/null || echo 0)"
+    REAL_GID="$(id -g "${REAL_USER}" 2>/dev/null || echo 0)"
+
+    info "Installing for user: ${REAL_USER} (home: ${REAL_HOME})"
 }
 
 # ─── Check system dependencies ────────────────────────────────────
@@ -197,6 +228,83 @@ install_runtime_deps() {
     success "Runtime dependencies installed."
 }
 
+# ─── Phase 4: Fix backend/xbps-src permissions ───────────────────
+#
+# pip wheel tidak menjamin preserve chmod +x pada script yang
+# di-bundle ke dalam package. xbps-src harus executable agar
+# subprocess.run() di utils/xbps.py bisa memanggilnya langsung.
+#
+setup_backend_perms() {
+    info "Setting backend permissions ..."
+
+    local site_pkg
+    site_pkg=$(python3 -c "
+import sysconfig
+print(sysconfig.get_path('purelib', vars={'base': '/usr', 'platbase': '/usr'}))
+" 2>/dev/null || true)
+
+    if [[ -z "${site_pkg}" ]]; then
+        warn "Could not detect site-packages path, skipping backend perms."
+        return 0
+    fi
+
+    local xbps_src_installed="${site_pkg}/${PKG_NAME}/backend/xbps-src"
+
+    if [[ ! -f "${xbps_src_installed}" ]]; then
+        warn "backend/xbps-src not found at: ${xbps_src_installed}"
+        warn "xbps-src integration may not work correctly."
+        return 0
+    fi
+
+    chmod 0755 "${xbps_src_installed}"
+    success "Permissions set: ${xbps_src_installed} (0755)"
+}
+
+# ─── Phase 5: Create user-space directories ──────────────────────
+#
+# Direktori dibuat sebagai milik REAL_USER (bukan root) karena
+# xbps-src melarang dijalankan sebagai root (xbps-src line 558-560).
+# Semua operasi `letx -x` akan dijalankan oleh user biasa.
+#
+# Yang dibuat:
+#   ~/.config/letx/core/      ← template category core
+#   ~/.config/letx/extra/     ← template category extra
+#   ~/.config/letx/multilib/  ← template category multilib
+#   ~/.config/letx/srcpkgs/   ← symlink bridge untuk xbps-src
+#   ~/.cache/letx/            ← cache packages.json
+#
+# Yang TIDAK dibuat:
+#   ~/.config/letx/masterdir/ ← xbps-src buat sendiri via binary-bootstrap
+#   ~/.config/letx/hostdir/   ← xbps-src buat sendiri saat pertama build
+#
+setup_user_dirs() {
+    info "Setting up user directories for ${REAL_USER} ..."
+
+    local letx_config="${REAL_HOME}/.config/letx"
+    local letx_cache="${REAL_HOME}/.cache/letx"
+
+    local dirs=(
+        "${letx_config}/core"
+        "${letx_config}/extra"
+        "${letx_config}/multilib"
+        "${letx_config}/srcpkgs"
+        "${letx_cache}"
+    )
+
+    for d in "${dirs[@]}"; do
+        if [[ ! -d "${d}" ]]; then
+            mkdir -p "${d}"
+            chown "${REAL_UID}:${REAL_GID}" "${d}"
+        fi
+    done
+
+    # Pastikan seluruh tree ~/.config/letx milik real user
+    chown -R "${REAL_UID}:${REAL_GID}" "${letx_config}"
+    chown -R "${REAL_UID}:${REAL_GID}" "${letx_cache}"
+
+    success "User directories ready: ${letx_config}"
+}
+
 # ─── Create wrapper at /usr/bin/letx ─────────────────────────────
 patch_wrapper() {
     local bin="${BIN_DIR}/${APP_NAME}"
@@ -237,6 +345,9 @@ installed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 install_prefix=${INSTALL_PREFIX}
 lib_dir=${LIB_DIR}
 bin=${BIN_DIR}/${APP_NAME}
+real_user=${REAL_USER}
+user_config=${REAL_HOME}/.config/letx
+user_cache=${REAL_HOME}/.cache/letx
 EOF
     success "Manifest written: ${SHARE_DIR}/MANIFEST"
 }
@@ -248,12 +359,15 @@ cleanup_build() {
 
 # ─── Core install steps (no banner, no root check) ───────────────
 _install_steps() {
+    detect_real_user
     check_deps
     cleanup_old_binaries
     clean_previous
-    build_wheel          # Phase 1
-    install_wheel        # Phase 2
-    install_runtime_deps # Phase 3
+    build_wheel             # Phase 1
+    install_wheel           # Phase 2
+    install_runtime_deps    # Phase 3
+    setup_backend_perms     # Phase 4
+    setup_user_dirs         # Phase 5
     patch_wrapper
     install_manpage
     write_manifest
@@ -261,6 +375,11 @@ _install_steps() {
 }
 
 # ─── Core uninstall steps (no root check) ────────────────────────
+#
+# User dirs (~/.config/letx/, ~/.cache/letx/) TIDAK dihapus karena
+# berisi template yang sudah didownload user. Ditampilkan sebagai
+# informasi saja agar user bisa hapus manual jika mau.
+#
 _uninstall_steps() {
     info "Removing ${APP_NAME} from system ..."
 
@@ -290,12 +409,17 @@ _uninstall_steps() {
         removed=$((removed + 1))
     fi
 
-    # Clean leftover Python site-packages installed by wheel
+    # Hapus sisa Python site-packages yang diinstall oleh wheel
     local site_pkg
-    site_pkg=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib', vars={'base': '/usr', 'platbase': '/usr'}))" 2>/dev/null || true)
+    site_pkg=$(python3 -c "
+import sysconfig
+print(sysconfig.get_path('purelib', vars={'base': '/usr', 'platbase': '/usr'}))
+" 2>/dev/null || true)
+
     if [[ -n "${site_pkg}" ]]; then
         if rm -rf "${site_pkg}/${PKG_NAME}" "${site_pkg}/${PKG_NAME}-"*.dist-info 2>/dev/null; then
             success "Removed: ${site_pkg}/${PKG_NAME}"
+            removed=$((removed + 1))
         fi
     fi
 
@@ -303,6 +427,17 @@ _uninstall_steps() {
         warn "${APP_NAME} not found on this system, nothing removed."
     else
         success "${APP_NAME} successfully uninstalled."
+    fi
+
+    # Informasi tentang user dirs yang dipertahankan
+    local real_user="${SUDO_USER:-${USER:-}}"
+    if [[ -n "${real_user}" && "${real_user}" != "root" ]]; then
+        local real_home
+        real_home="$(getent passwd "${real_user}" | cut -d: -f6 || echo "/home/${real_user}")"
+        echo ""
+        warn "User data preserved (remove manually if needed):"
+        warn "  ${real_home}/.config/letx/   ← templates & xbps workdirs"
+        warn "  ${real_home}/.cache/letx/    ← package index cache"
     fi
 }
 
@@ -312,8 +447,10 @@ do_install() {
     check_root
     _install_steps
     print_success "Installation"
-    echo -e "\n  Help    : ${CYN}letx --help${RST}"
-    echo -e "  Version : ${CYN}letx --version${RST}\n"
+    echo -e "\n  Help      : ${CYN}letx --help${RST}"
+    echo -e "  Version   : ${CYN}letx --version${RST}"
+    echo -e "  Bootstrap : ${CYN}letx -x binary-bootstrap${RST}"
+    echo -e "  Build pkg : ${CYN}letx -x pkg <pkgname>${RST}\n"
 }
 
 # ─── Reinstall ────────────────────────────────────────────────────
@@ -324,8 +461,10 @@ do_reinstall() {
     echo ""
     _install_steps
     print_success "Reinstall"
-    echo -e "\n  Help    : ${CYN}letx --help${RST}"
-    echo -e "  Version : ${CYN}letx --version${RST}\n"
+    echo -e "\n  Help      : ${CYN}letx --help${RST}"
+    echo -e "  Version   : ${CYN}letx --version${RST}"
+    echo -e "  Bootstrap : ${CYN}letx -x binary-bootstrap${RST}"
+    echo -e "  Build pkg : ${CYN}letx -x pkg <pkgname>${RST}\n"
 }
 
 # ─── Uninstall ────────────────────────────────────────────────────

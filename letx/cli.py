@@ -1,7 +1,6 @@
 """
 cli.py — CLI entry point for Let-X v0.1.2
 """
-
 from __future__ import annotations
 
 import argparse
@@ -15,9 +14,9 @@ from letx.ops.search import (
     count_packages,
     search_local_template,
 )
-from letx.ops.info    import get_info, get_local_template_info
-from letx.repo.fetch  import download_package
-from letx.repo.index  import fetch_index
+from letx.ops.info import get_info, get_local_template_info
+from letx.repo.fetch import download_package
+from letx.repo.index import fetch_index
 from letx.utils.print import (
     console,
     print_package_table,
@@ -29,19 +28,20 @@ from letx.utils.print import (
     print_info,
     print_warn,
 )
+from letx.utils import xbps as xbps_mod
 
-VERSION = "0.1.2"
+VERSION = "0.2.0"
 
-# ─── Helpers ──────────────────────────────────────────────
+# ─── Helpers ──────────────────────────────────────────────────────
 
 def _no_args_error(parser: argparse.ArgumentParser) -> int:
-    """Print [ERROR] No Options + usage and exit 1."""
+    """Print [ERROR] No Options + usage dan exit 1."""
     console.print("[bold red][ERROR][/bold red] No Options\n")
     parser.print_help()
     return 1
 
 
-# ─── Parser ───────────────────────────────────────────────
+# ─── Parser ───────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -55,16 +55,29 @@ def build_parser() -> argparse.ArgumentParser:
             "  letx update\n"
         ),
     )
+
     parser.add_argument(
         "-v", "--version",
         action="version",
         version=f"letx {VERSION}",
     )
 
-    sub = parser.add_subparsers(dest="command", metavar="<command>")
-    sub.required = False   # allow bare 'letx' → custom error
+    # ── -x / --xbps ───────────────────────────────────────────────
+    # Terima semua argumen setelah -x sebagai list mentah, lalu
+    # forward ke utils/xbps.py. argparse.REMAINDER memastikan
+    # semua token (termasuk yang dimulai '-') tidak di-parse lebih lanjut.
+    parser.add_argument(
+        "-x", "--xbps",
+        dest="xbps_args",
+        nargs=argparse.REMAINDER,
+        metavar="...",
+        help="letx integration xbps-src (letx -x <target> [pkgname] [options])",
+    )
 
-    # ── search ──────────────────────────────────────────
+    sub = parser.add_subparsers(dest="command", metavar="<command>")
+    sub.required = False  # allow bare 'letx' → custom error
+
+    # ── search ────────────────────────────────────────────────────
     p_search = sub.add_parser(
         "search",
         help="Search for a package in VUR",
@@ -93,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Search for a template locally in ~/.config/letx/",
     )
 
-    # ── info ────────────────────────────────────────────
+    # ── info ──────────────────────────────────────────────────────
     p_info = sub.add_parser(
         "info",
         help="Show package details",
@@ -122,7 +135,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show local template information",
     )
 
-    # ── list ────────────────────────────────────────────
+    # ── list ──────────────────────────────────────────────────────
     p_list = sub.add_parser(
         "list",
         help="List available packages",
@@ -153,7 +166,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show package count info (optionally for a specific category)",
     )
 
-    # ── get ─────────────────────────────────────────────
+    # ── get ───────────────────────────────────────────────────────
     p_get = sub.add_parser("get", help="Download package template locally")
     p_get.add_argument("name", help="Package name")
     p_get.add_argument(
@@ -162,17 +175,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="Re-download even if template already exists locally",
     )
 
-    # ── update ──────────────────────────────────────────
+    # ── update ────────────────────────────────────────────────────
     sub.add_parser("update", help="Refresh the VUR package index cache")
 
     return parser
 
 
-# ─── Command Handlers ─────────────────────────────────────
+# ─── Command Handlers ─────────────────────────────────────────────
+
+def cmd_xbps(xbps_args: list[str]) -> int:
+    """
+    Handler untuk `letx -x [args...]`
+
+    Seluruh args setelah -x di-forward ke utils/xbps.py tanpa disentuh
+    lebih lanjut oleh argparse. xbps.run() yang akan parsing dan routing.
+
+    Contoh pemanggilan:
+        letx -x binary-bootstrap
+        letx -x pkg discord
+        letx -x -j4 pkg neovim -G
+        letx -x -h
+        letx -x -V
+    """
+    return xbps_mod.run(xbps_args)
+
 
 def cmd_search(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    # letx search (no keyword, no flags)
-    if not args.keyword:
+    # letx search (tanpa keyword dan tanpa flag)
+    if not args.keyword and not args.template:
         console.print("[bold red][ERROR][/bold red] No Options\n")
         parser.parse_args(["search", "-h"])
         return 1
@@ -186,6 +216,7 @@ def cmd_search(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int
         + (f" [category: {args.category}]" if args.category else "")
         + " ..."
     )
+
     try:
         results = search_packages(args.keyword, category=args.category)
     except RuntimeError as e:
@@ -196,7 +227,6 @@ def cmd_search(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int
         print_warn(f"No packages found matching '{args.keyword}'.")
         return 0
 
-    # Show description column when searching by description (quoted or multi-word)
     show_desc = " " in args.keyword or args.keyword.startswith('"')
     print_package_table(results, title=f"Search Results: {args.keyword}", show_desc=show_desc)
     return 0
@@ -205,9 +235,7 @@ def cmd_search(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int
 def _search_local_template(pkg_name: str) -> int:
     """Handle letx search -t <pkg_name>."""
     print_info(f"Searching local templates for '{pkg_name}' ...")
-
     info = get_local_template_info(pkg_name)
-
     if not info["found"]:
         print_warn(
             f"Template '{pkg_name}' not found locally.\n"
@@ -215,7 +243,6 @@ def _search_local_template(pkg_name: str) -> int:
             f"  Run 'letx get {pkg_name}' to download it."
         )
         return 1
-
     print_local_template_info(info)
     return 0
 
@@ -229,7 +256,7 @@ def cmd_info(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     if args.category and not args.name:
         return _info_list_category(args.category)
 
-    # letx info <name> -c <category>  (category used as hint, show detail)
+    # letx info <name> -c <category>
     if args.name and args.category:
         return _info_detail(args.name)
 
@@ -242,7 +269,6 @@ def cmd_info(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     if args.name:
         return _info_detail(args.name)
 
-    # letx info (no args)
     return _no_args_error(parser)
 
 
@@ -252,11 +278,9 @@ def _info_detail(name: str) -> int:
     except RuntimeError as e:
         print_error(str(e))
         return 1
-
     if not info:
         print_error(f"Package '{name}' not found in VUR.")
         return 1
-
     print_package_info(info)
     return 0
 
@@ -264,10 +288,10 @@ def _info_detail(name: str) -> int:
 def _info_list_category(category: str) -> int:
     if category.lower() == "all":
         packages = list_packages()
-        title    = "VUR Packages — All"
+        title = "VUR Packages — All"
     else:
         packages = list_packages(category=category)
-        title    = f"VUR Packages — {category}"
+        title = f"VUR Packages — {category}"
 
     if not packages:
         cats = available_categories()
@@ -330,13 +354,12 @@ def cmd_list(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     # letx list all|core|extra|multilib
     if args.scope:
         scope = args.scope.lower()
-        cat   = None if scope == "all" else scope
+        cat = None if scope == "all" else scope
         packages = latest_packages(category=cat, limit=20)
         title = f"Latest 20 — {scope.capitalize()}"
         print_package_table(packages, title=title, show_desc=True)
         return 0
 
-    # letx list (no args)
     return _no_args_error(parser)
 
 
@@ -375,7 +398,10 @@ def cmd_get(args: argparse.Namespace) -> int:
         return 1
 
     print_success(f"Template saved to: {dest}")
-    print_info("You can now build it with xbps-src (coming soon).")
+    print_info(
+        f"Build with: letx -x pkg {args.name}\n"
+        f"  Or run binary-bootstrap first if not done: letx -x binary-bootstrap"
+    )
     return 0
 
 
@@ -390,13 +416,20 @@ def cmd_update(_args: argparse.Namespace) -> int:
         return 1
 
 
-# ─── Main ─────────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────────────────────
 
 def main() -> None:
     parser = build_parser()
-    args   = parser.parse_args()
+    args = parser.parse_args()
 
-    # bare 'letx' with no subcommand
+    # ── letx -x [args...] ─────────────────────────────────────────
+    # Dicek sebelum subcommand karena -x adalah optional argument,
+    # bukan subcommand. args.xbps_args bisa [] jika user ketik
+    # hanya `letx -x` tanpa argumen tambahan.
+    if args.xbps_args is not None:
+        sys.exit(cmd_xbps(args.xbps_args))
+
+    # ── bare 'letx' tanpa subcommand ──────────────────────────────
     if args.command is None:
         sys.exit(_no_args_error(parser))
 

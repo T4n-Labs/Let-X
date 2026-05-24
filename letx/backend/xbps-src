@@ -618,7 +618,10 @@ else
     export XBPS_REPOSITORY="${XBPS_REPOSITORY}/${XBPS_ALT_REPOSITORY}"
 fi
 
-readonly XBPS_SRCPKGDIR=$XBPS_DISTDIR/srcpkgs
+#readonly XBPS_SRCPKGDIR=$XBPS_DISTDIR/srcpkgs -Sebelumnya/Previously-
+: ${XBPS_SRCPKGDIR:=$XBPS_DISTDIR/srcpkgs}
+readonly XBPS_SRCPKGDIR
+
 readonly XBPS_COMMONDIR=$XBPS_DISTDIR/common
 readonly XBPS_SHUTILSDIR=$XBPS_COMMONDIR/xbps-src/shutils
 readonly XBPS_TRIGGERSDIR=$XBPS_SRCPKGDIR/xbps-triggers/files
