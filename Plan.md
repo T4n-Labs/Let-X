@@ -1,4 +1,132 @@
-# integrasi xbps-src pada Let-X
+# Fitur Letx-X
+
+## Sebelum
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Fri May 22 ] [ ~ ]
+└[T4n OS]->> letx
+[ERROR] No Options
+
+usage: letx [-h] [-v] <command> ...
+
+Let-X — VUR Helper for Void Linux
+
+positional arguments:
+  <command>
+    search       Search for a package in VUR
+    info         Show package details
+    list         List available packages
+    get          Download package template locally
+    update       Refresh the VUR package index cache
+
+options:
+  -h, --help     show this help message and exit
+  -v, --version  show program's version number and exit
+
+Examples:
+  letx -h
+  letx -v
+  letx update
+  
+## Sesudah
+
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Fri May 22 ] [ ~ ]
+└[T4n OS]->> letx
+[ERROR] No Options
+
+usage: letx [-h] [-v] <command> ...
+
+Let-X — VUR Helper for Void Linux
+
+positional arguments:
+  <command>
+    search       Search for a package in VUR
+    info         Show package details
+    list         List available packages
+    get          Download package template locally
+    update       Refresh the VUR package index cache
+
+options:
+  -h, --help     show this help message and exit
+  -v, --version  show program's version number and exit
+  -x, --xbps     letx integration xbps-src
+
+Examples:
+  letx -h
+  letx -v
+  letx update
+
+# Fitur Let-X dengan xbps-src
+
+- letx -x binary-bootstrap 		    → xbps-src binary-bootstrap
+- letx -x bootsrap 				    → xbps-src bootstrap
+- letx -x bootstrap-update 		    → xbps-src bootsrap-update
+- letx -x consistency-check 		→ xbps-src consistency-check
+- letx -x chroot 					→ xbps-src chroot
+- letx -x clean-repocache			→ xbps-src clean-repocache
+- letx -x fetch 					→ xbps-src fetch <pkgname>
+- letx -x extract 				    → xbps-src extract <pkgname>
+- letx -x patch 					→ xbps-src patch <pkgname>
+- letx -x configre 				    → xbps-src configure <pkgname>
+- letx -x build 					→ xbps-src build <pkgname>
+- letx -x check 					→ xbps-src check <pkgname>
+- letx -x install 				    → xbps-src install <pkgname>
+- letx -x pkg 					    → xbps-src pkg <pkgname>
+- letx -x clean 					→ xbps-src clean <pkgname>
+- letx -x list					    → xbps-src list
+- letx -x remove 					→ xbps-src remove <pkgname>
+- letx -x remove-autodeps 		    → xbps-src remove-autodeps
+- letx -x purge-distfiles 		    → xbps-src purge-distfiles
+- letx -x show 					    → xbps-src show <pkgname>
+- letx -x show-avail 				→ xbps-src show-avail <pkgname>
+- letx -x show-build-deps			→ xbps-src show-build-deps <pkgname>
+- letx -x show-check-deps			→ xbps-src show-build-deps <pkgname>
+- letx -x show-deps				    → xbps-src show-deps <pkgname>
+- letx -x show-files				→ xbps-src show-files <pkgname>
+- letx -x show-hostmakedepens		→ xbps-src show-hostmakedepens <pkgname>
+- letx -x show-makedepens			→ xbps-src show-makedepens <pkgname>
+- letx -x show-options			    → xbps-src show-options <pkgname>
+- letx -x show-shlib-provides		→ xbps-src show-shlib-provides <pkgname>
+- letx -x show-shlib-requires       → xbps-src show-shlib-requires <pkgname>
+- letx -x show-var				    → xbps-src show-var <var>
+- letx -x show-repo-updates		    → xbps-src show-repo-updates
+- letx -x show-sys-updates		    → xbps-src show-sys-updates
+- letx -x show-local-updates		→ xbps-src show-local-updates
+- letx -x sort-dependecies		    → xbps-src sort-dependecies <pkg> <pkgN+1> ...
+- letx -x update-bulk				→ xbps-src update-bulk
+- letx -x update-sys				→ xbps-src updates-sys
+- letx -x update-local			    → xbps-src update-local
+- letx -x update-check			    → xbps-src update-check <pkgname>
+- letx -x update-hash-cache		    → xbps-src update-hash-cache
+- letx -x zap						→ xbps-src zap
+**OPTIONS**
+- letx -x -1						→ xbps-src -1
+- letx -x -A						→ xbps-src -A <host>
+- letx -x -a						→ xbps-src -a <target>
+- letx -x -b						→ xbps-src -b
+- letx -x -c						→ xbps-src -c <configuration>
+- letx -x -C						→ xbps-src -C
+- letx -x -E						→ xbps-src -E
+- letx -x -f						→ xbps-src -f
+- letx -x -G						→ xbps-src -G
+- letx -x -g						→ xbps-src -g
+- letx -x -H						→ xbps-src -H <hostdir>
+- letx -x -h						→ xbps-src -h
+- letx -x -I						→ xbps-src -I
+- letx -x -i						→ xbps-src -i
+- letx -x -j						→ xbps-src -j
+- letx -x -L						→ xbps-src -L
+- letx -x -m						→ xbps-src -m <masterdir>
+- letx -x -N						→ xbps-src -N
+- letx -x -n						→ xbps-src -n
+- letx -x -o						→ xbps-src -o <opt,~opt2,...>
+- letx -x -p						→ xbps-src -p <variable,variable2,...>
+- letx -x -Q						→ xbps-src -Q
+- letx -x -K						→ xbps-src -K
+- letx -x -q						→ xbps-src -q
+- letx -x -r						→ xbps-src -r <repo>
+- letx -x -s						→ xbps-src -s
+- letx -x -t						→ xbps-src -t
+- letx -x -v						→ xbps-src -v
+- letx -x -V						→ xbps-src -V
 
 ## Tree Prooject
 
@@ -413,7 +541,6 @@
 │   │   │           └── origin/
 │   │   │               └── HEAD
 │   │   ├── README.md
-│   │   ├── srcpkgs
 │   │   └── xbps-src
 │   ├── cli.py
 │   ├── config.py
@@ -444,84 +571,8 @@
 └── xbps-template/
     └── template
 ```
-    
-    
-## Fitur Let-X dengan xbps-src
 
-- letx -x binary-bootstrap 		    → xbps-src binary-bootstrap
-- letx -x bootsrap 				    → xbps-src bootstrap
-- letx -x bootstrap-update 		    → xbps-src bootsrap-update
-- letx -x consistency-check 		→ xbps-src consistency-check
-- letx -x chroot 					→ xbps-src chroot
-- letx -x clean-repocache			→ xbps-src clean-repocache
-- letx -x fetch 					→ xbps-src fetch <pkgname>
-- letx -x extract 				    → xbps-src extract <pkgname>
-- letx -x patch 					→ xbps-src patch <pkgname>
-- letx -x configre 				    → xbps-src configure <pkgname>
-- letx -x build 					→ xbps-src build <pkgname>
-- letx -x check 					→ xbps-src check <pkgname>
-- letx -x install 				    → xbps-src install <pkgname>
-- letx -x pkg 					    → xbps-src pkg <pkgname>
-- letx -x clean 					→ xbps-src clean <pkgname>
-- letx -x list					    → xbps-src list
-- letx -x remove 					→ xbps-src remove <pkgname>
-- letx -x remove-autodeps 		    → xbps-src remove-autodeps
-- letx -x purge-distfiles 		    → xbps-src purge-distfiles
-- letx -x show 					    → xbps-src show <pkgname>
-- letx -x show-avail 				→ xbps-src show-avail <pkgname>
-- letx -x show-build-deps			→ xbps-src show-build-deps <pkgname>
-- letx -x show-check-deps			→ xbps-src show-build-deps <pkgname>
-- letx -x show-deps				    → xbps-src show-deps <pkgname>
-- letx -x show-files				→ xbps-src show-files <pkgname>
-- letx -x show-hostmakedepens		→ xbps-src show-hostmakedepens <pkgname>
-- letx -x show-makedepens			→ xbps-src show-makedepens <pkgname>
-- letx -x show-options			    → xbps-src show-options <pkgname>
-- letx -x show-shlib-provides		→ xbps-src show-shlib-provides <pkgname>
-- letx -x show-shlib-requires       → xbps-src show-shlib-requires <pkgname>
-- letx -x show-var				    → xbps-src show-var <var>
-- letx -x show-repo-updates		    → xbps-src show-repo-updates
-- letx -x show-sys-updates		    → xbps-src show-sys-updates
-- letx -x show-local-updates		→ xbps-src show-local-updates
-- letx -x sort-dependecies		    → xbps-src sort-dependecies <pkg> <pkgN+1> ...
-- letx -x update-bulk				→ xbps-src update-bulk
-- letx -x update-sys				→ xbps-src updates-sys
-- letx -x update-local			    → xbps-src update-local
-- letx -x update-check			    → xbps-src update-check <pkgname>
-- letx -x update-hash-cache		    → xbps-src update-hash-cache
-- letx -x zap						→ xbps-src zap
-**OPTIONS**
-- letx -x -1						→ xbps-src -1
-- letx -x -A						→ xbps-src -A <host>
-- letx -x -a						→ xbps-src -a <target>
-- letx -x -b						→ xbps-src -b
-- letx -x -c						→ xbps-src -c <configuration>
-- letx -x -C						→ xbps-src -C
-- letx -x -E						→ xbps-src -E
-- letx -x -f						→ xbps-src -f
-- letx -x -G						→ xbps-src -G
-- letx -x -g						→ xbps-src -g
-- letx -x -H						→ xbps-src -H <hostdir>
-- letx -x -h						→ xbps-src -h
-- letx -x -I						→ xbps-src -I
-- letx -x -i						→ xbps-src -i
-- letx -x -j						→ xbps-src -j
-- letx -x -L						→ xbps-src -L
-- letx -x -m						→ xbps-src -m <masterdir>
-- letx -x -N						→ xbps-src -N
-- letx -x -n						→ xbps-src -n
-- letx -x -o						→ xbps-src -o <opt,~opt2,...>
-- letx -x -p						→ xbps-src -p <variable,variable2,...>
-- letx -x -Q						→ xbps-src -Q
-- letx -x -K						→ xbps-src -K
-- letx -x -q						→ xbps-src -q
-- letx -x -r						→ xbps-src -r <repo>
-- letx -x -s						→ xbps-src -s
-- letx -x -t						→ xbps-src -t
-- letx -x -v						→ xbps-src -v
-- letx -x -V						→ xbps-src -V
-
-
-## Informasi xbps-src
+# Informasi xbps-src
 
 ┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Thu May 21 ] [ ~ ]
 └[T4n OS]->> xbps-src
