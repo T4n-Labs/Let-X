@@ -1,108 +1,116 @@
 # ISSUES
-## ISSUES #1: Let-X Binary Bootstrap Error
+## ISSUES #1: Let-X Inconsistent output
 
-### <span style="background-color: blue">STATUS</span> : <span style="color: yellow">PROCESS</span>
+### <span style="background-color: blue">STATUS</span> : <span style="color: orange">ON GOING</span>
 
-
-```
+```bash
 ┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Sun May 24 ] [ ~ ]
-└[T4n OS]->> letx -x binary-bootstrap
-=> xbps-src: installing base-chroot...
-=> xbps-src: updating repositories for host (x86_64)...
-[*] Updating repository `https://repo-default.voidlinux.org/current/bootstrap/x86_64-repodata' ...
-x86_64-repodata: 12KB [avg rate: 689MB/s]
-[*] Updating repository `https://repo-default.voidlinux.org/current/x86_64-repodata' ...
-x86_64-repodata: 2137KB [avg rate: 170KB/s]
-[*] Updating repository `https://repo-default.voidlinux.org/current/nonfree/x86_64-repodata' ...
-x86_64-repodata: 16KB [avg rate: 880MB/s]
-[*] Updating repository `https://repo-default.voidlinux.org/current/debug/x86_64-repodata' ...
-x86_64-repodata: 944KB [avg rate: 207KB/s]
-[*] Updating repository `https://repo-default.voidlinux.org/current/multilib/bootstrap/x86_64-repodata' ...
-x86_64-repodata: 3539B [avg rate: 178MB/s]
-[*] Updating repository `https://repo-default.voidlinux.org/current/multilib/x86_64-repodata' ...
-x86_64-repodata: 706KB [avg rate: 168KB/s]
-[*] Updating repository `https://repo-default.voidlinux.org/current/multilib/nonfree/x86_64-repodata' ...
-x86_64-repodata: 7499B [avg rate: 227KB/s]
+└[T4n OS]->> letx
+[ERROR] No Options
 
-Name                Action    Version           New version            Download size
-kernel-libc-headers install   -                 6.14_1                 1608KB
-...
-libxxHash           install   -                 0.8.2_1                16KB
-ccache              install   -                 4.13.6_1               781KB
-base-chroot         install   -                 0.67_4                 727B
+usage: letx [-h] [-v] [-x ...] <command> ...
 
-Size to download:              140MB
-Size required on disk:         523MB
-Space available on disk:        94GB
+Let-X — VUR Helper for Void Linux
 
+positional arguments:
+  <command>
+    search        Search for a package in VUR
+    info          Show package details
+    list          List available packages
+    get           Download package template locally
+    update        Refresh the VUR package index cache
 
-[*] Downloading packages
-...
-libxxHash-0.8.2_1.x86_64.xbps.sig2: 512B [avg rate: 31MB/s]
-libxxHash-0.8.2_1.x86_64.xbps: 16KB [avg rate: 649MB/s]
-libxxHash-0.8.2_1: verifying RSA signature...
-ccache-4.13.6_1.x86_64.xbps.sig2: 512B [avg rate: 31MB/s]
-ccache-4.13.6_1.x86_64.xbps: 781KB [avg rate: 1019KB/s]
-ccache-4.13.6_1: verifying RSA signature...
-base-chroot-0.67_4.x86_64.xbps.sig2: 512B [avg rate: 29MB/s]
-base-chroot-0.67_4.x86_64.xbps: 727B [avg rate: 35MB/s]
-base-chroot-0.67_4: verifying RSA signature...
+options:
+  -h, --help      show this help message and exit
+  -v, --version   show program's version number and exit
+  -x, --xbps ...  letx integration xbps-src (letx -x <target> [pkgname]
+                  [options])
 
-[*] Collecting package files
-...
-libxxHash-0.8.2_1: collecting files...
-ccache-4.13.6_1: collecting files...
-base-chroot-0.67_4: collecting files...
+Examples:
+  letx -h
+  letx -v
+  letx update
 
-[*] Unpacking packages
-...
-sed-4.10_1: unpacking ...
-findutils-4.10.0_1: unpacking ...
-findutils-4.10.0_1: registered 'find' alternatives group
-Creating 'find' alternatives group symlink: find -> /usr/bin/gfind
-Creating 'find' alternatives group symlink: find.1 -> /usr/share/man/man1/gfind.1
-findutils-4.10.0_1: registered 'xargs' alternatives group
-Creating 'xargs' alternatives group symlink: xargs -> /usr/bin/gxargs
-Creating 'xargs' alternatives group symlink: xargs.1 -> /usr/share/man/man1/gxargs.1
-diffutils-3.12_1: unpacking ...
-make-4.4.1_1: unpacking ...
-gzip-1.14_1: unpacking ...
-libcap-2.78_1: unpacking ...
-gmp-6.3.0_1: unpacking ...
-coreutils-9.4_3: unpacking ...
-coreutils-9.4_3: registered 'hostname' alternatives group
-Creating 'hostname' alternatives group symlink: hostname -> /usr/bin/hostname-coreutils
-Creating 'hostname' alternatives group symlink: hostname.1 -> /usr/share/man/man1/hostname-coreutils.1
-libmagic-5.46_2: unpacking ...
-...
-libxxHash-0.8.2_1: unpacking ...
-ccache-4.13.6_1: unpacking ...
-base-chroot-0.67_4: unpacking ...
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Sun May 24 ] [ ~ ]
+└[T4n OS]->> letx search
+[ERROR] No Options
 
-[*] Configuring unpacked packages
-...
-libxxHash-0.8.2_1: configuring ...
-libxxHash-0.8.2_1: installed successfully.
-ccache-4.13.6_1: configuring ...
-ccache-4.13.6_1: installed successfully.
-base-chroot-0.67_4: configuring ...
-base-chroot-0.67_4: installed successfully.
+usage: letx search [-h] [-c CATEGORY] [-t PKG_NAME] [keyword]
 
-77 downloaded, 77 installed, 0 updated, 77 configured, 0 removed, 0 on hold.
-=> xbps-src: installed base-chroot successfully!
-cp: cannot stat '/home/gh0st4n/.config/letx/srcpkgs/base-files/files/passwd': No such file or directory
-cp: cannot stat '/home/gh0st4n/.config/letx/srcpkgs/base-files/files/group': No such file or directory
-cp: cannot stat '/home/gh0st4n/.config/letx/srcpkgs/base-files/files/hosts': No such file or directory
-=> xbps-src: reconfiguring base-chroot...
-glibc-locales: configuring ...
-Generating GNU libc locales...
-  C.UTF-8... done.
-  en_US.UTF-8... done.
-glibc-locales: configured successfully.
-ca-certificates: configuring ...
-ca-certificates: configured successfully.
-=> xbps-src: removing autodeps, please wait...
-=> xbps-src: cleaning up masterdir...
+positional arguments:
+  keyword               Package name or description to search
+
+options:
+  -h, --help            show this help message and exit
+  -c, --category CATEGORY
+                        Filter by category: core | extra | multilib
+  -t, --template PKG_NAME
+                        Search for a template locally in ~/.config/letx/
+
+Examples:
+  letx search discord
+  letx search "Programming Language"
+  letx search browser -c extra
+  letx search -t discord
+
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Mon May 25 ] [ ~ ]
+└[T4n OS]->> letx info
+[ERROR] No Options
+
+usage: letx [-h] [-v] [-x ...] <command> ...
+
+Let-X — VUR Helper for Void Linux
+
+positional arguments:
+  <command>
+    search        Search for a package in VUR
+    info          Show package details
+    list          List available packages
+    get           Download package template locally
+    update        Refresh the VUR package index cache
+
+options:
+  -h, --help      show this help message and exit
+  -v, --version   show program's version number and exit
+  -x, --xbps ...  letx integration xbps-src (letx -x <target> [pkgname]
+                  [options])
+
+Examples:
+  letx -h
+  letx -v
+  letx update
+
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Mon May 25 ] [ ~ ]
+└[T4n OS]->> letx list
+[ERROR] No Options
+
+usage: letx [-h] [-v] [-x ...] <command> ...
+
+Let-X — VUR Helper for Void Linux
+
+positional arguments:
+  <command>
+    search        Search for a package in VUR
+    info          Show package details
+    list          List available packages
+    get           Download package template locally
+    update        Refresh the VUR package index cache
+
+options:
+  -h, --help      show this help message and exit
+  -v, --version   show program's version number and exit
+  -x, --xbps ...  letx integration xbps-src (letx -x <target> [pkgname]
+                  [options])
+
+Examples:
+  letx -h
+  letx -v
+  letx update
+
+┌──> [ gh0st4n @ T4n-Labs ] <<|= user =|>> [ Mon May 25 ] [ ~ ]
+└[T4n OS]->> letx get
+usage: letx get [-h] [-f] name
+letx get: error: the following arguments are required: name
 ```
 
 ---

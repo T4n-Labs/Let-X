@@ -13,6 +13,14 @@ _LETX_PKG_DIR = Path(__file__).parent        # .../letx/
 BACKEND_DIR   = _LETX_PKG_DIR / "backend"   # .../letx/backend/
 XBPS_SRC_PATH = BACKEND_DIR / "xbps-src"    # .../letx/backend/xbps-src
 
+# ─── Backend git dir ──────────────────────────────────────────────
+# xbps-src memanggil `git symbolic-ref` untuk detect branch info.
+# Direktori .git/ di backend/ sudah diganti nama menjadi root-git/
+# agar tidak bentrok dengan .git/ proyek Let-X itu sendiri.
+# GIT_DIR di-set ke path ini di build_xbps_env() supaya git
+# tetap bisa menemukan repo-nya.
+BACKEND_GIT_DIR = BACKEND_DIR / "root-git"
+
 # ─── VUR Remote ───────────────────────────────────────────────────
 VUR_REPO     = "T4n-Labs/vur"
 VUR_BRANCH   = "main"
@@ -44,22 +52,27 @@ CACHE_TTL = 3600
 
 # ─── xbps-src workdirs ────────────────────────────────────────────
 #
-# Opsi A — semua workdir xbps-src di bawah ~/.config/letx/
+# BACKEND_SRCPKGS_DIR : template internal xbps-src (bundled di repo)
+#   Dipakai oleh command bootstrap: binary-bootstrap, bootstrap,
+#   bootstrap-update, consistency-check, remove-autodeps, zap, dll.
+#   Berisi: base-files/, base-chroot/ — template yang dibutuhkan
+#   xbps-src untuk setup dan manage chroot environment.
 #
-# LETX_SRCPKGS_DIR : symlink bridge yang dikelola utils/xbps.py
-#   ~/.config/letx/srcpkgs/<pkgname>  →  ~/.config/letx/<cat>/<pkgname>/
-#   Di-set ke xbps-src via env var XBPS_SRCPKGDIR (setelah patch 1 baris)
+# LETX_SRCPKGS_DIR : symlink bridge untuk VUR templates (user)
+#   ~/.config/letx/srcpkgs/<pkgname> → ~/.config/letx/<cat>/<pkgname>/
+#   Dipakai oleh command pkg: pkg, build, fetch, install, dll.
 #
-# LETX_MASTERDIR   : chroot environment xbps-src
+# LETX_MASTERDIR : chroot environment xbps-src
 #   Di-pass ke xbps-src via flag -m
 #   Dibuat oleh xbps-src sendiri saat `letx -x binary-bootstrap`
 #
-# LETX_HOSTDIR     : output build (.xbps packages, sources, repocache)
+# LETX_HOSTDIR : output build (.xbps packages, sources, repocache)
 #   Di-pass ke xbps-src via flag -H
 #
-LETX_SRCPKGS_DIR = CONFIG_DIR / "srcpkgs"
-LETX_MASTERDIR   = CONFIG_DIR / "masterdir"
-LETX_HOSTDIR     = CONFIG_DIR / "hostdir"
+BACKEND_SRCPKGS_DIR = BACKEND_DIR / "srcpkgs"   # bundled, static
+LETX_SRCPKGS_DIR    = CONFIG_DIR  / "srcpkgs"   # user VUR, dynamic
+LETX_MASTERDIR      = CONFIG_DIR  / "masterdir"
+LETX_HOSTDIR        = CONFIG_DIR  / "hostdir"
 
 
 # ─── Directory setup ──────────────────────────────────────────────

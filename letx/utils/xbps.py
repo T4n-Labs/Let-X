@@ -11,6 +11,10 @@ Yang TIDAK dikerjakan di sini:
   - Build logic (itu urusan xbps-src)
   - Parsing output xbps-src
   - Format/styling output (itu urusan utils/print.py)
+
+XBPS_SRCPKGDIR routing:
+  CMDS_NO_PKG  → BACKEND_SRCPKGS_DIR  (bundled: base-files/, base-chroot/)
+  CMDS_NEED_PKG → LETX_SRCPKGS_DIR    (user VUR symlink bridge)
 """
 
 from __future__ import annotations
@@ -22,6 +26,8 @@ from pathlib import Path
 
 from letx.config import (
     BACKEND_DIR,
+    BACKEND_GIT_DIR,
+    BACKEND_SRCPKGS_DIR,
     CATEGORIES,
     LETX_HOSTDIR,
     LETX_MASTERDIR,
@@ -35,11 +41,14 @@ from letx.config import (
 #
 # Dipakai untuk:
 #   (a) Validasi argumen sebelum panggil xbps-src
-#   (b) Menentukan apakah perlu cari + setup symlink template
+#   (b) Routing XBPS_SRCPKGDIR yang tepat:
+#       CMDS_NEED_PKG → LETX_SRCPKGS_DIR    (VUR user templates)
+#       CMDS_NO_PKG   → BACKEND_SRCPKGS_DIR  (bundled internal templates)
 #
-# Sumber: `letx-xbps.md` + analisis langsung xbps-src (1095 baris)
+# Sumber: letx-xbps.md + analisis langsung xbps-src (1095 baris)
 
 # Command yang wajib diikuti <pkgname>
+# XBPS_SRCPKGDIR → ~/.config/letx/srcpkgs/ (VUR symlink bridge)
 CMDS_NEED_PKG: frozenset[str] = frozenset({
     "fetch",
     "extract",
@@ -65,7 +74,8 @@ CMDS_NEED_PKG: frozenset[str] = frozenset({
     "update-check",
 })
 
-# Command yang TIDAK butuh pkgname (no-arg atau arg khusus)
+# Command yang TIDAK butuh pkgname
+# XBPS_SRCPKGDIR → backend/srcpkgs/ (bundled: base-files, base-chroot)
 CMDS_NO_PKG: frozenset[str] = frozenset({
     "binary-bootstrap",
     "bootstrap",
@@ -120,8 +130,9 @@ def setup_srcpkg_symlink(pkgname: str, pkg_dir: Path) -> Path:
     Buat symlink ~/.config/letx/srcpkgs/<pkgname> → <pkg_dir>
 
     xbps-src mencari template di $XBPS_SRCPKGDIR/<pkgname>/template.
-    Kita set XBPS_SRCPKGDIR=~/.config/letx/srcpkgs/, jadi symlink ini
-    yang menjembatani antara struktur kategori Let-X dan ekspektasi xbps-src.
+    Kita set XBPS_SRCPKGDIR=~/.config/letx/srcpkgs/ untuk CMDS_NEED_PKG,
+    jadi symlink ini yang menjembatani struktur kategori Let-X dan
+    ekspektasi xbps-src.
 
     Symlink lama dihapus dulu kalau sudah ada (staleness protection).
 
@@ -154,22 +165,71 @@ def cleanup_srcpkg_symlink(pkgname: str) -> None:
 
 # ─── Environment setup ───────────────────────────────────────────
 
-def build_xbps_env() -> dict[str, str]:
+def build_xbps_env(*, use_backend_srcpkgs: bool = False) -> dict[str, str]:
     """
     Bangun environment variables untuk subprocess xbps-src.
 
-    XBPS_SRCPKGDIR: override default $XBPS_DISTDIR/srcpkgs ke symlink
-                    bridge kita. Ini butuh 1-line patch di xbps-src:
-                    Ubah `readonly XBPS_SRCPKGDIR=$XBPS_DISTDIR/srcpkgs`
-                    menjadi `: ${XBPS_SRCPKGDIR:=$XBPS_DISTDIR/srcpkgs}`
-                    Sehingga env var yang di-set di sini bisa masuk.
+    Args:
+        use_backend_srcpkgs:
+            True  → XBPS_SRCPKGDIR = backend/srcpkgs/ (bundled)
+                    Dipakai oleh CMDS_NO_PKG:
+                    binary-bootstrap, bootstrap, consistency-check, dll.
+                    xbps-src butuh base-files/ dan base-chroot/ dari sini.
+            False → XBPS_SRCPKGDIR = ~/.config/letx/srcpkgs/ (VUR)
+                    Dipakai oleh CMDS_NEED_PKG:
+                    pkg, build, fetch, install, dll.
+
+    GIT_DIR:
+        xbps-src memanggil `git symbolic-ref` untuk detect branch info.
+        Direktori .git/ sudah diganti nama menjadi root-git/ agar tidak
+        bentrok dengan .git/ proyek Let-X. GIT_DIR di-set eksplisit ke
+        backend/root-git/ supaya git tetap bisa menemukan repo-nya.
+        Fix untuk: "fatal: not a git repository"
+
+    GIT_WORK_TREE:
+        Di-set ke BACKEND_DIR supaya git tahu working tree-nya.
 
     Catatan: XBPS_MASTERDIR dan XBPS_HOSTDIR di-pass via flag -m dan -H,
     bukan env var, karena xbps-src memprioritaskan flag di atas env var
     untuk kedua variabel tersebut (lihat xbps-src line 547-553).
     """
     env = os.environ.copy()
-    env["XBPS_SRCPKGDIR"] = str(LETX_SRCPKGS_DIR)
+
+    # Routing XBPS_SRCPKGDIR berdasarkan jenis command
+    if use_backend_srcpkgs:
+        env["XBPS_SRCPKGDIR"] = str(BACKEND_SRCPKGS_DIR)
+    else:
+        env["XBPS_SRCPKGDIR"] = str(LETX_SRCPKGS_DIR)
+
+    # Fix "missing <lang>_package() function" — xbps-src mencari
+    # common/build-style/, common/hooks/, dll relatif terhadap
+    # XBPS_COMMONDIR. Kalau tidak di-set eksplisit, xbps-src default
+    # ke <XBPS_SRCPKGDIR>/../common/ — yang valid saat SRCPKGDIR=backend/srcpkgs/,
+    # tapi SALAH saat SRCPKGDIR=~/.config/letx/srcpkgs/ (VUR mode).
+    # Di-set eksplisit ke backend/common/ agar selalu tepat di kedua mode.
+    env["XBPS_COMMONDIR"] = str(BACKEND_DIR / "common")
+
+    # Fix "fatal: not a git repository"
+    # root-git/ adalah .git/ yang di-rename agar tidak bentrok dengan
+    # .git/ proyek Let-X. Tapi saat di-install sebagai wheel ke
+    # /usr/lib/python3.x/site-packages/, folder root-git/ TIDAK ikut
+    # ter-package (git dirs di-exclude dari wheel secara default).
+    #
+    # Strategi:
+    #   - Jika root-git/ ada (dev mode / editable install): set GIT_DIR
+    #     supaya git tahu repo-nya.
+    #   - Jika tidak ada (wheel install): UNSET GIT_DIR dari env yang
+    #     di-inherit user. xbps-src tetap memanggil git, tapi output
+    #     "fatal: not a git repository" akan muncul sebagai warning
+    #     non-fatal — build tetap jalan. Dengan unset, kita cegah
+    #     git salah baca GIT_DIR dari env user yang kebetulan ter-set.
+    if BACKEND_GIT_DIR.is_dir():
+        env["GIT_DIR"]       = str(BACKEND_GIT_DIR)
+        env["GIT_WORK_TREE"] = str(BACKEND_DIR)
+    else:
+        env.pop("GIT_DIR",       None)
+        env.pop("GIT_WORK_TREE", None)
+
     return env
 
 
@@ -209,7 +269,7 @@ def run(args: list[str]) -> int:
         )
         return 1
 
-    # Command yang butuh pkgname: cari template, setup symlink
+    # Command yang butuh pkgname: cari template VUR, setup symlink
     if target in CMDS_NEED_PKG:
         if not pkgname:
             _print_error(
@@ -219,8 +279,8 @@ def run(args: list[str]) -> int:
             return 1
         return _run_with_template(target, pkgname, xbps_options)
 
-    # Command yang tidak butuh pkgname: langsung forward semua args
-    return _run_xbps_raw(args)
+    # Command yang tidak butuh pkgname: pakai backend/srcpkgs/
+    return _run_xbps_raw(args, use_backend_srcpkgs=True)
 
 
 # ─── Internal helpers ────────────────────────────────────────────
@@ -272,13 +332,15 @@ def _run_with_template(
     xbps_options: list[str],
 ) -> int:
     """
-    Jalankan xbps-src untuk command yang butuh pkgname.
+    Jalankan xbps-src untuk command yang butuh pkgname (CMDS_NEED_PKG).
+
+    XBPS_SRCPKGDIR → ~/.config/letx/srcpkgs/ (VUR symlink bridge)
 
     Alur:
       1. Cari template di {core,extra,multilib}
-      2. Buat symlink bridge di srcpkgs/
+      2. Buat symlink bridge di ~/.config/letx/srcpkgs/
       3. Pastikan workdirs xbps-src ada
-      4. Jalankan xbps-src dengan env + flag yang tepat
+      4. Jalankan xbps-src dengan env VUR + flag yang tepat
       5. Cleanup symlink (best-effort)
     """
     # 1. Cari template
@@ -286,7 +348,7 @@ def _run_with_template(
     if result is None:
         _print_error(
             f"Package '{pkgname}' not found in any category.\n"
-            f"Searched: " + ", ".join(
+            "Searched: " + ", ".join(
                 str(TEMPLATE_DIRS[c] / pkgname) for c in CATEGORIES
             ) + "\n"
             f"Run 'letx get {pkgname}' to download the template first."
@@ -313,13 +375,14 @@ def _run_with_template(
         pkgname,
     ]
 
-    env = build_xbps_env()
+    # XBPS_SRCPKGDIR → ~/.config/letx/srcpkgs/ (VUR)
+    env = build_xbps_env(use_backend_srcpkgs=False)
 
     try:
         proc = subprocess.run(
             cmd,
             env=env,
-            cwd=str(BACKEND_DIR),  # xbps-src resolve XBPS_DISTDIR dari CWD script
+            cwd=str(BACKEND_DIR),
         )
         return proc.returncode
     except FileNotFoundError:
@@ -336,14 +399,19 @@ def _run_with_template(
         cleanup_srcpkg_symlink(pkgname)
 
 
-def _run_xbps_raw(args: list[str]) -> int:
+def _run_xbps_raw(
+    args: list[str],
+    *,
+    use_backend_srcpkgs: bool = False,
+) -> int:
     """
     Forward args langsung ke xbps-src tanpa preprocessing.
 
     Dipakai untuk:
-    - Command yang tidak butuh pkgname (binary-bootstrap, list, zap, ...)
-    - Flag-only invocation (-h, -V)
-    - Fallback
+    - CMDS_NO_PKG: binary-bootstrap, bootstrap, consistency-check, dll
+      → use_backend_srcpkgs=True (backend/srcpkgs/ bundled)
+    - Flag-only invocation: -h, -V
+      → use_backend_srcpkgs=False (default, tidak relevan)
 
     Flag -m dan -H di-inject otomatis kecuali user sudah set sendiri.
     """
@@ -357,7 +425,7 @@ def _run_xbps_raw(args: list[str]) -> int:
         injected += ["-H", str(LETX_HOSTDIR)]
 
     cmd = [str(XBPS_SRC_PATH), *injected, *args]
-    env = build_xbps_env()
+    env = build_xbps_env(use_backend_srcpkgs=use_backend_srcpkgs)
 
     # Untuk binary-bootstrap, pastikan parent masterdir ada
     if args and args[0] == "binary-bootstrap":

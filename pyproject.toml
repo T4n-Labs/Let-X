@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "letx"
-version     = "0.1.1"
+version     = "0.2.0"
 description = "Let-X — VUR Helper untuk Void Linux"
 readme      = "README.md"
-license     = { text = "MIT" }
+license     = { text = "BSD-2-Clause" }
 requires-python = ">=3.11"
 
 dependencies = [
@@ -27,3 +27,41 @@ dev = [
 [tool.setuptools.packages.find]
 where   = ["."]
 include = ["letx*"]
+
+# ─── Bundle semua file non-Python di dalam package ────────────────
+#
+# Setuptools by default hanya include file .py. Semua file lain
+# (xbps-src, template, config, helper scripts di common/) harus
+# dideklarasikan eksplisit di sini agar ikut masuk ke wheel.
+#
+# letx/backend/xbps-src         ← executable utama (tanpa ekstensi)
+# letx/backend/common/**/*      ← ratusan helper scripts xbps-src
+# letx/backend/etc/**/*         ← defaults.conf, xbps.d/
+# letx/backend/root-git/**/*    ← renamed .git/ (fix GIT_DIR error)
+
+[tool.setuptools.package-data]
+letx = [
+    # xbps-src executable (tanpa ekstensi — harus eksplisit)
+    "backend/xbps-src",
+    "backend/srcpkgs/**/*",
+    "backend/srcpkgs/*",
+
+    # Semua file di common/ secara rekursif (build-style, hooks, dll)
+    # Fix Error 2: XBPS_COMMONDIR harus mengarah ke sini agar
+    # xbps-src nemuin build-style/zig.sh, cmake.sh, dll
+    "backend/common/**/*",
+    "backend/common/*",
+
+    # Config xbps-src
+    "backend/etc/**/*",
+    "backend/etc/*",
+
+    # root-git/ adalah backend/.git/ yang di-rename agar tidak bentrok
+    # dengan .git/ proyek Let-X itu sendiri.
+    # Fix Error 1: tanpa ini, GIT_DIR tidak bisa di-set setelah wheel
+    # install → git error "fatal: not a git repository"
+    # Catatan: setuptools exclude hidden dirs (.git/) secara default,
+    # tapi root-git/ (non-hidden) akan ter-include dengan entry ini.
+    "backend/root-git/**/*",
+    "backend/root-git/*",
+]
