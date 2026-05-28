@@ -1,18 +1,18 @@
 # Template for 'Let-X'
 pkgname=letx
-version=0.1.2
+version=0.2.0
 revision=1
 short_desc="VUR Helper for Void Linux"
 maintainer="Gh0sT4n <darskevoid@gmail.com>"
 license="BSD-2-Clause"
 homepage="https://github.com/T4n-Labs/Let-X"
 distfiles="https://github.com/T4n-Labs/Let-X/archive/refs/tags/v${version}.tar.gz"
-checksum=34c61bca52331a243dac1aa4f1666ec89f89cf667d7c638e3d337a80b75f060c
+checksum=
 
 # ── Dependencies ───────────────────────────────────────────────────
 # Tidak pakai build_style=python3-module karena masih memanggil
-# 'python3 setup.py build' — tidak kompatibel dengan pyproject.toml murni
-# Build manual via pip langsung
+# 'python3 setup.py build' — tidak kompatibel dengan pyproject.toml murni.
+# Build manual via pip langsung.
 
 hostmakedepends="python3 python3-pip python3-setuptools python3-wheel"
 
@@ -45,3 +45,5 @@ do_install() {
 		vman letx.1
 	fi
 }
+
+letx_package() { :; }
