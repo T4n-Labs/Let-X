@@ -87,12 +87,12 @@ letx info -c <category>
 letx info -t <package_name>
 ```
 
-| Argument / Option | Description |
-|-------------------|-------------|
-| `<package_name>` | Full details for a specific package |
-| `all / core / extra / multilib` | 20 most recently added packages |
-| `-c`, `--category` | List all packages in a category |
-| `-t`, `--template` | Show details of a local template |
+| Argument / Option               | Description                         |
+|---------------------------------|-------------------------------------|
+| `<package_name>`                | Full details for a specific package |
+| `all / core / extra / multilib` | 20 most recently added packages     |
+| `-c`, `--category`              | List all packages in a category     |
+| `-t`, `--template`              | Show details of a local template    |
 
 **Examples:**
 ```bash
@@ -112,11 +112,11 @@ letx list -c <category>
 letx list -p [category]
 ```
 
-| Argument / Option | Description |
-|-------------------|-------------|
-| `all / core / extra / multilib` | 20 most recently added packages |
-| `-c`, `--category` | All packages in a specific category |
-| `-p`, `--package` | Show package count statistics |
+| Argument / Option               | Description                         |
+|---------------------------------|-------------------------------------|
+| `all / core / extra / multilib` | 20 most recently added packages     |
+| `-c`, `--category`              | All packages in a specific category |
+| `-p`, `--package`               | Show package count statistics       |
 
 **Examples:**
 ```bash
@@ -147,8 +147,8 @@ letx get <package_name>
 letx get <package_name> --force
 ```
 
-| Option | Description |
-|--------|-------------|
+| Option          | Description                                     |
+|-----------------|-------------------------------------------------|
 | `-f`, `--force` | Re-download even if the template already exists |
 
 **Examples:**
@@ -195,10 +195,10 @@ Once bootstrap is complete, build packages directly from VUR templates:
 
 ```bash
 # Download the template first (if not already done)
-letx get zig
+letx get <name_package>
 
 # Build the package
-letx -x pkg zig
+letx -x pkg <name_package>
 ```
 
 Built packages are saved to `~/.config/letx/hostdir/binpkgs/`.
@@ -206,23 +206,23 @@ Built packages are saved to `~/.config/letx/hostdir/binpkgs/`.
 #### Installing a Built Package
 
 ```bash
-sudo xbps-install --repository=$HOME/.config/letx/hostdir/binpkgs zig
+sudo xbps-install --repository=$HOME/.config/letx/hostdir/binpkgs <name_package>
 ```
 
 #### Available Targets
 
-| Target | Description |
-|--------|-------------|
-| `pkg <name>` | Full build + create `.xbps` package file |
-| `fetch <name>` | Download source distfile only |
-| `extract <name>` | Extract source archive |
-| `build <name>` | Compile only |
-| `install <name>` | Install to destdir |
-| `clean <name>` | Clean build directory |
-| `show <name>` | Show template info |
-| `show-build-deps <name>` | Show build dependencies |
-| `binary-bootstrap` | Set up build environment (once only) |
-| `zap` | Reset/clean the masterdir |
+| Target                   | Description                              |
+|--------------------------|------------------------------------------|
+| `pkg <name>`             | Full build + create `.xbps` package file |
+| `fetch <name>`           | Download source distfile only            |
+| `extract <name>`         | Extract source archive                   |
+| `build <name>`           | Compile only                             |
+| `install <name>`         | Install to destdir                       |
+| `clean <name>`           | Clean build directory                    |
+| `show <name>`            | Show template info                       |
+| `show-build-deps <name>` | Show build dependencies                  |
+| `binary-bootstrap`       | Set up build environment (once only)     |
+| `zap`                    | Reset/clean the masterdir                |
 
 **Examples:**
 ```bash
