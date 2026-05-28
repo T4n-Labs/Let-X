@@ -1,6 +1,7 @@
 # Let-X — VUR Helper
 
-> CLI Tool untuk mengakses **VUR (Void User Repository)** dengan mudah di Void Linux dan turunannya.
+>- CLI Tool untuk mengakses **VUR (Void User Repository)** dengan mudah di Void Linux dan turunannya.
+>- CLI Tool to easily access **VUR (Void User Repository)** on Void Linux and its derivatives.
 
 **Versi:** 0.2.0 | **Python:** 3.11+ | **Binary:** `letx`
 
@@ -17,27 +18,32 @@
 
 ## Quick Start
 
+### Install via script
 ```bash
-# Install
 git clone https://github.com/T4n-Labs/Let-X && cd Let-X
 sudo ./install.sh
-## OR
-mkdir /path/to/void-packages/srcpkgs/letx
-git clone https://github.com/T4n-Labs/Let-X && cd Let-X
-cp xbps-template/template /path/to/void-packages/srcpkgs/letx
-xbps-src pkg letx
-sudo xbps-install --repository=/path/to/void-packages/hostdir/binpkgs letx
+```
 
+### Install via xbps-src
+```bash
+cp -r xbps-template/letx /path/to/void-packages/srcpkgs/
+cd /path/to/void-packages
+xbps-src pkg letx
+sudo xbps-install --repository=hostdir/binpkgs letx
+```
+
+### Use
+```bash
 # Setup build environment (sekali saja)
 letx -x binary-bootstrap
 
 # Cari, download, dan build package
-letx search <nama_package>
-letx get <nama_package>
-letx -x pkg <nama_package>
+letx search <package>
+letx get <package>
+letx -x pkg <package>
 
 # Install hasil build
-sudo xbps-install --repository=$HOME/.config/letx/hostdir/binpkgs z<nama_package>
+sudo xbps-install --repository=$HOME/.config/letx/hostdir/binpkgs <package>
 ```
 
 ## Documentation
@@ -49,7 +55,8 @@ sudo xbps-install --repository=$HOME/.config/letx/hostdir/binpkgs z<nama_package
 
 ## AI Coder Prompt
 
-Prompt konteks untuk Claude, OpenCode, atau AI coder lainnya agar memahami arsitektur Let-X tanpa perlu membaca semua file source.
+* A context prompt for Claude, OpenCode, or any other AI coder to understand the Let-X architecture without reading all the source.naan files
+* Prompt konteks untuk Claude, OpenCode, atau AI coder lainnya agar memahami arsitektur Let-X tanpa membaca semua file source.
 
 | Audience     | Link                                               |
 |--------------|----------------------------------------------------|
