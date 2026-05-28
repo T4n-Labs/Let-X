@@ -7,6 +7,8 @@
 - [Arsitektur Proyek](#arsitektur-proyek)
 - [Struktur Direktori](#struktur-direktori)
 - [Referensi Modul](#referensi-modul)
+- [Perubahan v0.1.2 → v0.2.0](#perubahan-v012--v020)
+- [Arsitektur xbps-src Integration](#arsitektur-xbps-src-integration)
 - [Alur Data](#alur-data)
 - [Setup Development Environment](#setup-development-environment)
 - [Konvensi Kode](#konvensi-kode)
@@ -14,24 +16,32 @@
 - [Menjalankan Test](#menjalankan-test)
 - [Build Package xbps-src](#build-package-xbps-src)
 - [Dependensi](#dependensi)
-- [Roadmap](#roadmap)
+- [Catatan Pengembangan Selanjutnya](#catatan-pengembangan-selanjutnya)
 
 ## Arsitektur Proyek
 
 Let-X mengikuti prinsip **separation of concerns** — setiap lapisan punya satu tanggung jawab yang jelas:
 
 ```
-┌──────────────────────────────────────────────┐
-│               CLI (cli.py)                   │  argparse: parse args, routing ke handler
-├────────────────────┬─────────────────────────┤
-│       ops/         │         repo/           │  logika bisnis vs akses data
-│  search.py         │     index.py            │
-│  info.py           │     fetch.py            │
-├────────────────────┴─────────────────────────┤
-│              utils/print.py                  │  Rich: semua output terminal
-├──────────────────────────────────────────────┤
-│               config.py                      │  konstanta, path, URL
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                    CLI (cli.py)                      │  argparse: parse args, routing handler
+├────────────────────┬─────────────────────────────────┤
+│       ops/         │          repo/                  │  logika bisnis vs akses data
+│  search.py         │      index.py                   │
+│  info.py           │      fetch.py                   │
+├────────────────────┴─────────────────────────────────┤
+│                 utils/print.py                       │  Rich: semua output terminal
+│                 utils/xbps.py                        │  xbps-src wrapper (baru di v0.2.0)
+├──────────────────────────────────────────────────────┤
+│                  config.py                           │  konstanta, path, URL
+└──────────────────────────────────────────────────────┘
+         ↓
+┌──────────────────────────────────────────────────────┐
+│               backend/ (xbps-src)                    │  void-packages murni, tidak dimodifikasi
+│   srcpkgs/         → base-files, base-chroot         │  (hanya untuk bootstrap/internal)
+│   common/          → build-style, hooks, chroot-style│
+│   xbps-src         → main script                     │
+└──────────────────────────────────────────────────────┘
 ```
 
 **Prinsip penting:**
@@ -39,598 +49,236 @@ Let-X mengikuti prinsip **separation of concerns** — setiap lapisan punya satu
 - `ops/` tidak tahu soal HTTP — itu urusan `repo/`
 - `repo/` tidak tahu soal tampilan — itu urusan `utils/`
 - `config.py` tidak mengimport modul manapun dari proyek ini
-
----
+- `utils/xbps.py` adalah satu-satunya modul yang boleh memanggil subprocess xbps-src
 
 ## Struktur Direktori
 
-```text
-.
-├── letx/                                   ← Python package utama
-│   ├── __init__.py                         → Versi dan nama app
-│   ├── backend/
-│   │   ├── common/
-│   │   │   ├── build-helper/
-│   │   │   │   ├── cmake-wxWidgets-gtk3.sh
-│   │   │   │   ├── gir.sh
-│   │   │   │   ├── haskell.sh
-│   │   │   │   ├── meson.sh
-│   │   │   │   ├── numpy.sh
-│   │   │   │   ├── python3.sh
-│   │   │   │   ├── qemu.sh
-│   │   │   │   ├── qmake.sh
-│   │   │   │   ├── qmake6.sh
-│   │   │   │   └── rust.sh
-│   │   │   ├── build-profiles/
-│   │   │   │   ├── aarch64-musl.sh
-│   │   │   │   ├── aarch64.sh
-│   │   │   │   ├── armv6l-musl.sh
-│   │   │   │   ├── armv6l.sh
-│   │   │   │   ├── armv7l-musl.sh
-│   │   │   │   ├── armv7l.sh
-│   │   │   │   ├── bootstrap.sh
-│   │   │   │   ├── i686-musl.sh
-│   │   │   │   ├── i686.sh
-│   │   │   │   ├── ppc-musl.sh
-│   │   │   │   ├── ppc.sh
-│   │   │   │   ├── ppc64-musl.sh
-│   │   │   │   ├── ppc64.sh
-│   │   │   │   ├── ppc64le-musl.sh
-│   │   │   │   ├── ppc64le.sh
-│   │   │   │   ├── ppcle-musl.sh
-│   │   │   │   ├── ppcle.sh
-│   │   │   │   ├── README
-│   │   │   │   ├── riscv64-musl.sh
-│   │   │   │   ├── riscv64.sh
-│   │   │   │   ├── x86_64-musl.sh
-│   │   │   │   └── x86_64.sh
-│   │   │   ├── build-style/
-│   │   │   │   ├── cabal.sh
-│   │   │   │   ├── cargo.sh
-│   │   │   │   ├── cmake.sh
-│   │   │   │   ├── configure.sh
-│   │   │   │   ├── fetch.sh
-│   │   │   │   ├── gem.sh
-│   │   │   │   ├── gemspec.sh
-│   │   │   │   ├── gnu-configure.sh
-│   │   │   │   ├── gnu-makefile.sh
-│   │   │   │   ├── go.sh
-│   │   │   │   ├── haskell-stack.sh
-│   │   │   │   ├── meson.sh
-│   │   │   │   ├── perl-module.sh
-│   │   │   │   ├── perl-ModuleBuild.sh
-│   │   │   │   ├── python2-module.sh
-│   │   │   │   ├── python3-module.sh
-│   │   │   │   ├── python3-pep517.sh
-│   │   │   │   ├── qmake.sh
-│   │   │   │   ├── R-cran.sh
-│   │   │   │   ├── raku-dist.sh
-│   │   │   │   ├── README
-│   │   │   │   ├── ruby-module.sh
-│   │   │   │   ├── scons.sh
-│   │   │   │   ├── sip-build.sh
-│   │   │   │   ├── slashpackage.sh
-│   │   │   │   ├── texmf.sh
-│   │   │   │   ├── tree-sitter.sh
-│   │   │   │   ├── void-cross.sh
-│   │   │   │   ├── waf3.sh
-│   │   │   │   └── zig-build.sh
-│   │   │   ├── chroot-style/
-│   │   │   │   ├── bwrap.sh
-│   │   │   │   ├── ethereal.sh
-│   │   │   │   ├── README
-│   │   │   │   ├── uchroot.sh
-│   │   │   │   └── uunshare.sh
-│   │   │   ├── container/
-│   │   │   │   ├── Containerfile
-│   │   │   │   ├── docker-bake.hcl
-│   │   │   │   ├── noextract.conf
-│   │   │   │   ├── README.md
-│   │   │   │   └── setup.sh
-│   │   │   ├── cross-profiles/
-│   │   │   │   ├── aarch64-musl.sh
-│   │   │   │   ├── aarch64.sh
-│   │   │   │   ├── armv5te-musl.sh -> armv5tel-musl.sh
-│   │   │   │   ├── armv5te.sh -> armv5tel.sh
-│   │   │   │   ├── armv5tel-musl.sh
-│   │   │   │   ├── armv5tel.sh
-│   │   │   │   ├── armv6hf-musl.sh -> armv6l-musl.sh
-│   │   │   │   ├── armv6hf.sh -> armv6l.sh
-│   │   │   │   ├── armv6l-musl.sh
-│   │   │   │   ├── armv6l.sh
-│   │   │   │   ├── armv7hf-musl.sh -> armv7l-musl.sh
-│   │   │   │   ├── armv7hf.sh -> armv7l.sh
-│   │   │   │   ├── armv7l-musl.sh
-│   │   │   │   ├── armv7l.sh
-│   │   │   │   ├── i686-musl.sh
-│   │   │   │   ├── i686.sh
-│   │   │   │   ├── mips-musl.sh
-│   │   │   │   ├── mipsel-musl.sh
-│   │   │   │   ├── mipselhf-musl.sh
-│   │   │   │   ├── mipshf-musl.sh
-│   │   │   │   ├── ppc-musl.sh
-│   │   │   │   ├── ppc.sh
-│   │   │   │   ├── ppc64-musl.sh
-│   │   │   │   ├── ppc64.sh
-│   │   │   │   ├── ppc64le-musl.sh
-│   │   │   │   ├── ppc64le.sh
-│   │   │   │   ├── ppcle-musl.sh
-│   │   │   │   ├── ppcle.sh
-│   │   │   │   ├── README
-│   │   │   │   ├── riscv64-musl.sh
-│   │   │   │   ├── riscv64.sh
-│   │   │   │   ├── x86_64-musl.sh
-│   │   │   │   └── x86_64.sh
-│   │   │   ├── environment/
-│   │   │   │   ├── build/
-│   │   │   │   │   ├── bootstrap.sh -> ../configure/bootstrap.sh
-│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
-│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
-│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
-│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
-│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
-│   │   │   │   ├── build-style/
-│   │   │   │   │   ├── cabal.sh
-│   │   │   │   │   ├── cargo.sh
-│   │   │   │   │   ├── cmake.sh
-│   │   │   │   │   ├── gem.sh
-│   │   │   │   │   ├── gemspec.sh
-│   │   │   │   │   ├── go.sh
-│   │   │   │   │   ├── haskell-stack.sh
-│   │   │   │   │   ├── meson.sh
-│   │   │   │   │   ├── perl-module.sh
-│   │   │   │   │   ├── perl-ModuleBuild.sh
-│   │   │   │   │   ├── python2-module.sh
-│   │   │   │   │   ├── python3-module.sh
-│   │   │   │   │   ├── python3-pep517.sh
-│   │   │   │   │   ├── R-cran.sh
-│   │   │   │   │   ├── raku-dist.sh
-│   │   │   │   │   ├── ruby-module.sh
-│   │   │   │   │   ├── scons.sh
-│   │   │   │   │   ├── texmf/
-│   │   │   │   │   │   └── ownership.txt
-│   │   │   │   │   ├── texmf.sh
-│   │   │   │   │   ├── tree-sitter.sh
-│   │   │   │   │   ├── void-cross.sh
-│   │   │   │   │   ├── waf.sh
-│   │   │   │   │   ├── waf3.sh
-│   │   │   │   │   └── zig-build.sh
-│   │   │   │   ├── check/
-│   │   │   │   │   ├── bootstrap.sh -> ../configure/bootstrap.sh
-│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
-│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
-│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
-│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
-│   │   │   │   │   ├── no_display.sh
-│   │   │   │   │   └── pk
----g-config.sh -> ../configure/pkg-config.sh
-│   │   │   │   ├── configure/
-│   │   │   │   │   ├── autoconf_cache/
-│   │   │   │   │   │   ├── aarch64-linux
-│   │   │   │   │   │   ├── arm-common
-│   │   │   │   │   │   ├── arm-linux
-│   │   │   │   │   │   ├── common-glibc
-│   │   │   │   │   │   ├── common-linux
-│   │   │   │   │   │   ├── endian-big
-│   │   │   │   │   │   ├── endian-little
-│   │   │   │   │   │   ├── ix86-common
-│   │   │   │   │   │   ├── mips-common
-│   │   │   │   │   │   ├── mips-linux
-│   │   │   │   │   │   ├── mipsel-linux
-│   │   │   │   │   │   ├── musl-linux
-│   │   │   │   │   │   ├── powerpc-common
-│   │   │   │   │   │   ├── powerpc-linux
-│   │   │   │   │   │   ├── powerpc32-linux
-│   │   │   │   │   │   ├── powerpc64-linux
-│   │   │   │   │   │   ├── riscv64-linux
-│   │   │   │   │   │   └── x86_64-linux
-│   │   │   │   │   ├── automake/
-│   │   │   │   │   │   ├── config.guess
-│   │   │   │   │   │   └── config.sub
-│   │   │   │   │   ├── bootstrap.sh
-│   │   │   │   │   ├── ccache.sh
-│   │   │   │   │   ├── cross.sh
-│   │   │   │   │   ├── debug-debug-prefix-map.sh
-│   │   │   │   │   ├── gccspecs/
-│   │   │   │   │   │   ├── hardened-cc1
-│   │   │   │   │   │   ├── hardened-ld
-│   │   │   │   │   │   └── hardened-mips-cc1
-│   │   │   │   │   ├── gnu-configure-args.sh
-│   │   │   │   │   ├── hardening.sh
-│   │   │   │   │   └── pkg-config.sh
-│   │   │   │   ├── extract/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── fetch/
-│   │   │   │   │   ├── fetch_cmd.sh
-│   │   │   │   │   └── misc.sh -> ../setup/misc.sh
-│   │   │   │   ├── install/
-│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
-│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
-│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
-│   │   │   │   │   ├── extglob.sh
-│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
-│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
-│   │   │   │   ├── patch/
-│   │   │   │   │   ├── bootstrap.sh -> ../configure/bootstrap.sh
-│   │   │   │   │   ├── ccache.sh -> ../configure/ccache.sh
-│   │   │   │   │   ├── cross.sh -> ../configure/cross.sh
-│   │   │   │   │   ├── debug-debug-prefix-map.sh -> ../configure/debug-debug-prefix-map.sh
-│   │   │   │   │   ├── gnu-configure-args.sh -> ../configure/gnu-configure-args.sh
-│   │   │   │   │   ├── hardening.sh -> ../configure/hardening.sh
-│   │   │   │   │   └── pkg-config.sh -> ../configure/pkg-config.sh
-│   │   │   │   ├── pkg/
-│   │   │   │   │   └── extglob.sh -> ../install/extglob.sh
-│   │   │   │   ├── README
-│   │   │   │   ├── setup/
-│   │   │   │   │   ├── archive.sh
-│   │   │   │   │   ├── git.sh
-│   │   │   │   │   ├── install.sh
-│   │   │   │   │   ├── misc.sh
-│   │   │   │   │   ├── options.sh
-│   │   │   │   │   ├── python.sh
-│   │   │   │   │   ├── replace-interpreter.sh
-│   │   │   │   │   ├── sourcepkg.sh
-│   │   │   │   │   └── vsed.sh
-│   │   │   │   └── setup-subpkg/
-│   │   │   │       └── subpkg.sh
-│   │   │   ├── hooks/
-│   │   │   │   ├── do-build/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── do-check/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── do-configure/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── do-extract/
-│   │   │   │   │   └── 00-distfiles.sh
-│   │   │   │   ├── do-fetch/
-│   │   │   │   │   └── 00-distfiles.sh
-│   │   │   │   ├── do-install/
-│   │   │   │   ├── do-patch/
-│   │   │   │   │   └── 00-patches.sh
-│   │   │   │   ├── do-pkg/
-│   │   │   │   │   └── 00-gen-pkg.sh
-│   │   │   │   ├── post-build/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── post-check/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── post-configure/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── post-extract/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── post-fetch/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── post-install/
-│   │   │   │   │   ├── 00-compress-info-files.sh
-│   │   │   │   │   ├── 00-fixup-gir-path.sh
-│   │   │   │   │   ├── 00-libdir.sh
-│   │   │   │   │   ├── 00-uncompress-manpages.sh
-│   │   │   │   │   ├── 01-remove-misc.sh
-│   │   │   │   │   ├── 02-remove-libtool-archives.sh
-│   │   │   │   │   ├── 02-remove-perl-files.sh
-│   │   │   │   │   ├── 02-remove-python-bytecode-files.sh
-│   │   │   │   │   ├── 03-remove-empty-dirs.sh
-│   │   │   │   │   ├── 04-create-xbps-metadata-scripts.sh
-│   │   │   │   │   ├── 05-generate-gitrevs.sh
-│   │   │   │   │   ├── 06-strip-and-debug-pkgs.sh
-│   │   │   │   │   ├── 10-pkglint-devel-paths.sh
-│   │   │   │   │   ├── 11-pkglint-elf-in-usrshare.sh
-│   │   │   │   │   ├── 12-rename-python3-c-bindings.sh
-│   │   │   │   │   ├── 13-pkg-config-clean-xbps-cross-base-ref.sh
-│   │   │   │   │   ├── 14-fix-permissions.sh
-│   │   │   │   │   ├── 15-qt-private-api.sh
-│   │   │   │   │   ├── 80-prepare-32bit.sh
-│   │   │   │   │   ├── 98-shlib-provides.sh
-│   │   │   │   │   └── 99-pkglint-warn-cross-cruft.sh
-│   │   │   │   ├── post-patch/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── post-pkg/
-│   │   │   │   │   └── 00-register-pkg.sh
-│   │   │   │   ├── pre-build/
-│   │   │   │   │   └── 02-script-wrapper.sh -> ../pre-configure/02-script-wrapper.sh
-│   │   │   │   ├── pre-check/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── pre-configure/
-│   │   │   │   │   ├── 00-gnu-configure-asneeded.sh
-│   │   │   │   │   ├── 01-override-config.sh
-│   │   │   │   │   └── 02-script-wrapper.sh
-│   │   │   │   ├── pre-extract/
-│   │   │   │   ├── pre-fetch/
-│   │   │   │   ├── pre-install/
-│   │   │   │   │   ├── 00-libdir.sh
-│   │   │   │   │   ├── 02-script-wrapper.sh -> ../pre-configure/02-script-wrapper.sh
-│   │   │   │   │   └── 98-fixup-gir-path.sh
-│   │   │   │   ├── pre-patch/
-│   │   │   │   │   └── .empty
-│   │   │   │   ├── pre-pkg/
-│   │   │   │   │   ├── 03-restrict-py3-version.sh
-│   │   │   │   │   ├── 03-rewrite-python-shebang.sh
-│   │   │   │   │   ├── 04-generate-provides.sh
-│   │   │   │   │   ├── 04-generate-runtime-deps.sh
-│   │   │   │   │   ├── 05-generate-32bit-runtime-deps.sh
-│   │   │   │   │   ├── 06-verify-python-deps.sh
-│   │   │   │   │   ├── 90-set-timestamps.sh
-│   │   │   │   │   ├── 99-pkglint-subpkgs.sh
-│   │   │   │   │   ├── 99-pkglint.sh
-│   │   │   │   │   └── 999-collected-rdeps.sh
-│   │   │   │   └── README
-│   │   │   ├── options.description
-│   │   │   ├── repo-keys/
-│   │   │   │   ├── 3d:b9:c0:50:41:a7:68:4c:2e:2c:a9:a2:5a:04:b7:3f.plist
-│   │   │   │   └── 60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist
-│   │   │   ├── scripts/
-│   │   │   │   ├── check-custom-licenses
-│   │   │   │   ├── gen-wrap-distfiles.py
-│   │   │   │   ├── lint-commits
-│   │   │   │   ├── lint-conflicts
-│   │   │   │   ├── lint-version-change
-│   │   │   │   ├── lint2annotations.awk
-│   │   │   │   ├── parse-py-metadata.py
-│   │   │   │   ├── README.xbps-cycles.md
-│   │   │   │   └── xbps-cycles.py
-│   │   │   ├── shlibs
-│   │   │   ├── travis/
-│   │   │   │   ├── build.sh
-│   │   │   │   ├── changed_templates.sh
-│   │   │   │   ├── check-install.sh
-│   │   │   │   ├── fetch-xbps.sh
-│   │   │   │   ├── fetch-xtools.sh
-│   │   │   │   ├── license.lst
-│   │   │   │   ├── prepare.sh
-│   │   │   │   ├── set_mirror.sh
-│   │   │   │   ├── show_files.sh
-│   │   │   │   ├── verify-update-check.sh
-│   │   │   │   ├── xlint.sh
-│   │   │   │   └── xpkgdiff.sh
-│   │   │   ├── wrappers/
-│   │   │   │   ├── cross-cc
-│   │   │   │   ├── date.sh
-│   │   │   │   ├── install.sh
-│   │   │   │   ├── ldconfig.sh
-│   │   │   │   ├── strip.sh
-│   │   │   │   └── uname.sh
-│   │   │   └── xbps-src/
-│   │   │       ├── libexec/
-│   │   │       │   ├── build.sh
-│   │   │       │   ├── xbps-src-dobuild.sh
-│   │   │       │   ├── xbps-src-docheck.sh
-│   │   │       │   ├── xbps-src-doconfigure.sh
-│   │   │       │   ├── xbps-src-doextract.sh
-│   │   │       │   ├── xbps-src-dofetch.sh
-│   │   │       │   ├── xbps-src-doinstall.sh
-│   │   │       │   ├── xbps-src-dopatch.sh
-│   │   │       │   ├── xbps-src-dopkg.sh
-│   │   │       │   └── xbps-src-prepkg.sh
-│   │   │       └── shutils/
-│   │   │           ├── build_dependencies.sh
-│   │   │           ├── bulk.sh
-│   │   │           ├── chroot.sh
-│   │   │           ├── common.sh
-│   │   │           ├── consistency_check.sh
-│   │   │           ├── cross.sh
-│   │   │           ├── pkgtarget.sh
-│   │   │           ├── purge_distfiles.sh
-│   │   │           ├── show.sh
-│   │   │           ├── update_check.sh
-│   │   │           └── update_hash_cache.sh
-│   │   ├── COPYING
-│   │   ├── etc/
-│   │   │   ├── defaults.conf
-│   │   │   ├── defaults.virtual
-│   │   │   └── xbps.d/
-│   │   │       ├── repos-local-x86_64-multilib.conf
-│   │   │       ├── repos-local.conf
-│   │   │       ├── repos-remote-aarch64-musl.conf
-│   │   │       ├── repos-remote-aarch64.conf
-│   │   │       ├── repos-remote-musl.conf
-│   │   │       ├── repos-remote-x86_64-multilib.conf
-│   │   │       └── repos-remote.conf
-│   ├── root-git/
-│   │   ├── config
-│   │   ├── description
-│   │   ├── HEAD
-│   │   ├── hooks/
-│   │   │   ├── applypatch-msg.sample
-│   │   │   ├── commit-msg.sample
-│   │   │   ├── fsmonitor-watchman.sample
-│   │   │   ├── post-update.sample
-│   │   │   ├── pre-applypatch.sample
-│   │   │   ├── pre-commit.sample
-│   │   │   ├── pre-merge-commit.sample
-│   │   │   ├── pre-push.sample
-│   │   │   ├── pre-rebase.sample
-│   │   │   ├── pre-receive.sample
-│   │   │   ├── prepare-commit-msg.sample
-│   │   │   ├── push-to-checkout.sample
-│   │   │   ├── sendemail-validate.sample
-│   │   │   └── update.sample
-│   │   ├── index
-│   │   ├── info/
-│   │   │   └── exclude
-│   │   ├── logs/
-│   │   │   ├── HEAD
-│   │   │   └── refs/
-│   │   │       ├── heads/
-│   │   │       │   └── master
-│   │   │       └── remotes/
-│   │   │           └── origin/
-│   │   │               └── HEAD
-│   │   ├── README.md
-│   │   └── xbps-src
-│   ├── cli.py                      → Entry point CLI (argparse)
-│   ├── config.py                   → Semua konstanta dan path
-│   ├── ops/                        → Layer akses data (GitHub)
-│   │   ├── __init__.py
-│   │   ├── info.py                 → Fetch dan cache packages.json
-│   │   └── search.py               → Download folder template via GitHub API
-│   ├── repo/                       → Layer logika bisnis
-│   │   ├── __init__.py
-│   │   ├── fetch.py                → Search, list, count, pencarian template lokal
-│   │   └── index.py                → Detail package + info template lokal
-│   └── utils/
-│   │   ├── __init__.py
-│		├── xbps.py
-│       └── print.py                → Semua output Rich (tabel, panel, warna)
-├── tests/
+```
+Let-X/
+├── letx/
 │   ├── __init__.py
-│   └── test_search.py              → Unit tests
-├── vdocs/
-│   ├── docs.md
-│   ├── EN/
-│   │   ├── dev.md
-│   │   └── user.md
-│   └── ID/
-│       ├── dev.md
-│       └── user.md
-├── xbps-template/                  → Template xbps-src
-│   └── template
-├── pyproject.toml                  → Metadata proyek dan dependensi
-├── install.sh                      → Script instalasi bash
-├── LICENSE
-└── README.md
+│   ├── cli.py                          ← Entry point CLI
+│   ├── config.py                       ← Semua konstanta dan path
+│   │
+│   ├── backend/                        ← xbps-src (void-packages murni)
+│   │   ├── xbps-src                    ← Script utama xbps-src
+│   │   ├── srcpkgs/                    ← BACKEND ONLY: base-files, base-chroot
+│   │   │   ├── base-chroot/
+│   │   │   └── base-files/
+│   │   ├── common/
+│   │   │   ├── build-style/            ← Build system scripts (cmake, cargo, dll)
+│   │   │   ├── chroot-style/           ← Chroot scripts
+│   │   │   │   ├── uunshare.sh         ← Default (tidak dimodifikasi)
+│   │   │   │   ├── bwrap.sh
+│   │   │   │   ├── letx.sh             ← BARU: custom chroot untuk VUR builds
+│   │   │   │   └── ...
+│   │   │   ├── environment/
+│   │   │   ├── hooks/
+│   │   │   └── ...
+│   │   ├── etc/
+│   │   └── root-git/                   ← .git/ yang di-rename (GIT_DIR fix)
+│   │
+│   ├── ops/
+│   │   ├── search.py                   ← Search, list, count packages
+│   │   └── info.py                     ← Get package detail + local template
+│   │
+│   ├── repo/
+│   │   ├── index.py                    ← Fetch & cache packages.json dari VUR
+│   │   └── fetch.py                    ← Download template via GitHub API
+│   │
+│   └── utils/
+│       ├── print.py                    ← Semua output Rich
+│       └── xbps.py                     ← xbps-src wrapper (BARU di v0.2.0)
+│
+├── install.sh
+├── pyproject.toml
+└── tests/
 ```
 
 ## Referensi Modul
 
 ### `config.py`
 
-Satu-satunya tempat untuk semua konstanta. Modul lain tidak boleh hardcode path atau URL.
+Semua konstanta dan path. **Tidak boleh diimport dari modul lain** — hanya `config.py` yang boleh mengimport stdlib.
 
 ```python
-# Remote
-VUR_REPO     = "T4n-Labs/vur"
-VUR_API_BASE = "https://api.github.com/repos/T4n-Labs/vur/contents"
-PACKAGES_URL = "https://raw.githubusercontent.com/T4n-Labs/vur/main/packages.json"
+# Path penting
+BACKEND_DIR          # letx/backend/
+XBPS_SRC_PATH        # letx/backend/xbps-src
+BACKEND_GIT_DIR      # letx/backend/root-git/ (GIT_DIR fix)
+BACKEND_SRCPKGS_DIR  # letx/backend/srcpkgs/ (base-files, base-chroot ONLY)
 
-# Path lokal
-CONFIG_DIR = Path.home() / ".config" / "letx"
-CACHE_DIR  = Path.home() / ".cache"  / "letx"
-TEMPLATE_DIRS = {
-    "core":     CONFIG_DIR / "core",
-    "extra":    CONFIG_DIR / "extra",
-    "multilib": CONFIG_DIR / "multilib",
-}
-
-CACHE_TTL = 3600  # detik (1 jam)
+CONFIG_DIR           # ~/.config/letx/
+CACHE_DIR            # ~/.cache/letx/
+TEMPLATE_DIRS        # {"core": ..., "extra": ..., "multilib": ...}
+LETX_MASTERDIR       # ~/.config/letx/masterdir/
+LETX_CHROOT_SRCPKGS  # ~/.config/letx/masterdir/letx-srcpkgs/
+LETX_HOSTDIR         # ~/.config/letx/hostdir/
+LETX_SRCPKGS_DIR     # ~/.config/letx/srcpkgs/ (legacy, dipertahankan untuk kompatibilitas)
 ```
 
-### `repo/index.py`
+### `utils/xbps.py`
 
-Mengelola fetch dan cache `packages.json`.
+Wrapper xbps-src. Bertanggung jawab atas seluruh interaksi dengan xbps-src.
 
-| Fungsi        | Signature                               | Keterangan                                   |
-|---------------|-----------------------------------------|----------------------------------------------|
-| `fetch_index` | `(force: bool = False) → list[Package]` | Ambil semua package (dari cache atau GitHub) |
-| `get_package` | `(name: str) → Package \| None`         | Cari satu package by nama eksak              |
-| `cache_info`  | `() → dict`                             | Status cache saat ini                        |
+| Fungsi                                 | Tugas                                                 |
+|----------------------------------------|-------------------------------------------------------|
+| `run(args)`                            | Entry point utama dari `cli.py`                       |
+| `find_template(pkgname)`               | Loop `core → extra → multilib`, return `(cat, path)`  |
+| `stage_vur_template(pkgname, pkg_dir)` | Copy + patch template ke `masterdir/letx-srcpkgs/`    |
+| `build_xbps_env(...)`                  | Bangun environment untuk subprocess xbps-src          |
+| `_run_with_template(...)`              | Jalankan xbps-src untuk `CMDS_NEED_PKG`               |
+| `_run_xbps_raw(...)`                   | Forward args langsung ke xbps-src untuk `CMDS_NO_PKG` |
+| `_parse_args(args)`                    | Identifikasi target, pkgname, xbps_options            |
 
-**Logika cache:**
-```
-fetch_index()
-    │
-    ├─ Cache ada DAN umur < TTL DAN force=False?
-    │   └─ return cache lokal
-    │
-    └─ Sebaliknya:
-        ├─ GET packages.json dari GitHub
-        ├─ Tulis ke ~/.cache/letx/packages.json
-        └─ Return data baru
-            │
-            └─ Jika fetch GAGAL tapi ada cache lama:
-                └─ Return cache lama (graceful degradation)
-```
-### `repo/fetch.py`
+## Perubahan v0.1.2 → v0.2.0
 
-Mengunduh folder template dari GitHub menggunakan **GitHub Contents API** — tidak butuh `git` atau `svn`.
+### 1. Penambahan Backend (`letx/backend/`)
 
-| Fungsi | Signature | Keterangan |
-|---|---|---|
-| `download_package` | `(pkg_path, category, pkg_name, progress_cb) → Path` | Download folder package dari VUR |
-| `package_exists_locally` | `(category, pkg_name) → bool` | Cek apakah template sudah ada lokal |
-| `local_package_path` | `(category, pkg_name) → Path \| None` | Path lokal package jika ada |
+**v0.1.2:** Tidak ada backend. `letx -x` belum ada.
 
-**Strategi fetch:**
-```
-GitHub Contents API
-GET /repos/T4n-Labs/vur/contents/extra/discord
-    │
-    └─ Response: list of {type, name, path, ...}
-        │
-        ├─ type == "file"  → download via raw.githubusercontent.com
-        └─ type == "dir"   → rekursi ke subdirektori
+**v0.2.0:** xbps-src (void-packages murni) di-bundle di `letx/backend/`. Perubahan dari upstream void-packages:
+- `backend/srcpkgs/` **hanya berisi** `base-files/` dan `base-chroot/` — tidak ada template package biasa
+- `.git/` di-rename menjadi `root-git/` agar tidak bentrok dengan `.git/` proyek Let-X sendiri
+- `common/chroot-style/letx.sh` **ditambahkan** (lihat bagian berikutnya)
+
+`pyproject.toml` diupdate untuk bundle file backend:
+```toml
+[tool.setuptools.package-data]
+letx = [
+    "backend/xbps-src",
+    "backend/srcpkgs/**/*",
+    "backend/common/**/*",
+    "backend/common/*",
+    "backend/etc/**/*",
+    "backend/root-git/**/*",
+    "backend/root-git/*",
+]
 ```
 
-### `ops/search.py`
+### 2. Script Shell `letx.sh` — Custom Chroot Style
 
-Semua operasi pencarian dan listing. Sepenuhnya offline setelah index di-cache.
+**File:** `letx/backend/common/chroot-style/letx.sh`
 
-| Fungsi                  | Signature                                   | Keterangan                        |
-|-------------------------|---------------------------------------------|-----------------------------------|
-| `search_packages`       | `(keyword, category=None) → list[Package]`  | Cari by nama atau deskripsi       |
-| `list_packages`         | `(category=None) → list[Package]`           | List semua package                |
-| `latest_packages`       | `(category=None, limit=20) → list[Package]` | Package yang terakhir ditambahkan |
-| `count_packages`        | `(category=None) → dict[str, int]`          | Jumlah package per kategori       |
-| `search_local_template` | `(pkg_name) → LocalTemplateResult`          | Cari template di direktori lokal  |
-| `available_categories`  | `() → list[str]`                            | Kategori unik di index            |
+**Masalah yang diselesaikan:**
 
-**Search fields (fix v0.1.2):**
+xbps-src default menggunakan `uunshare.sh` untuk setup chroot namespace. Template VUR tersimpan di `~/.config/letx/extra/<pkg>/` yang **tidak ter-mount** di dalam chroot. Chroot hanya mount dua path:
+```
+LETX_MASTERDIR  →  /               (root chroot)
+BACKEND_DIR     →  /void-packages/ (backend xbps-src)
+```
+
+`uunshare.sh` original:
+```bash
+exec xbps-uunshare $EXTRA_ARGS -b $DISTDIR:/void-packages ...
+#                  ^^^^^^^^^^^
+#                  EXTRA_ARGS di sini → tertimpa oleh DISTDIR mount
+```
+
+Mount order bermasalah: `EXTRA_ARGS` (bind mount VUR srcpkgs) diproses **sebelum** DISTDIR. Di Linux mount namespace, mount DISTDIR ke `/void-packages/` kemudian menutup seluruh subtree termasuk mount yang sudah ada di `/void-packages/srcpkgs/`.
+
+**`letx.sh` membalik urutan:**
+```bash
+exec xbps-uunshare \
+    -b $DISTDIR:/void-packages \   ← DISTDIR dulu
+    ${HOSTDIR:+-b $HOSTDIR:/host} \
+    $EXTRA_ARGS \                  ← EXTRA_ARGS sesudah (overlay di atas DISTDIR)
+    -- $MASTERDIR $CMD $@
+```
+
+**Diaktifkan** di `xbps.py` via:
 ```python
-# Hanya name dan description — tidak ada false positive dari maintainer/homepage
-_SEARCH_FIELDS = ("name", "description")
+env["XBPS_CHROOT_CMD"] = "letx"
+env["XBPS_CHROOT_CMD_ARGS"] = f"-b {LETX_CHROOT_SRCPKGS}:void-packages/srcpkgs"
 ```
 
-**Ranking hasil search:**
-```python
-def _rank(pkg) -> int:
-    name = pkg["name"].lower()
-    if name == keyword:       return 0   # exact match → paling atas
-    if name.startswith(kw):   return 1   # prefix match
-    if kw in name:            return 2   # contains match
-    return 3                             # cocok di description
+### 3. VUR Template Staging System
+
+**Problem:** VUR template di `~/.config/letx/extra/zig/` tidak bisa diakses dari dalam chroot. Solusi menggunakan `masterdir/letx-srcpkgs/` sebagai staging area yang **selalu accessible** di dalam chroot sebagai `/letx-srcpkgs/`.
+
+**Alur staging:**
+```
+SOURCE: ~/.config/letx/extra/zig/template     (tidak pernah dimodifikasi)
+           ↓  stage_vur_template()
+STAGED: ~/.config/letx/masterdir/letx-srcpkgs/zig/template  (patched copy)
+           ↓  bind-mount via letx.sh EXTRA_ARGS
+CHROOT: /void-packages/srcpkgs/zig/template   (xbps-src baca dari sini)
 ```
 
-**Pencarian template lokal — core → extra → multilib:**
-```python
-search_order = ["core", "extra", "multilib"]
-for cat in search_order:
-    pkg_dir = TEMPLATE_DIRS[cat] / pkg_name
-    if pkg_dir.exists():
-        return LocalTemplateResult(found=True, category=cat, path=pkg_dir, ...)
-return LocalTemplateResult(found=False, ...)
+**Patch yang diterapkan saat staging:**
+
+xbps-src memanggil `${pkgname}_package()` untuk semua package di `xbps-src-doinstall.sh`. Template VUR yang mengikuti standar xbps-src void-packages tidak wajib mendefinisikan fungsi ini untuk single-package template. Let-X menginjeksikan default no-op secara otomatis:
+
+```bash
+# Auto-injected by Let-X
+zig_package() { :; }
 ```
 
-### `ops/info.py`
+**Template asli tidak pernah dimodifikasi.** Patch hanya ada di staged copy di `masterdir/letx-srcpkgs/`.
 
-| Fungsi                    | Signature                    | Keterangan                       |
-|---------------------------|------------------------------|----------------------------------|
-| `get_info`                | `(name: str) → dict \| None` | Detail package + status lokal    |
-| `get_local_template_info` | `(pkg_name: str) → dict`     | Detail template lokal + data VUR |
+### 4. GIT_DIR Fix
 
-### `utils/print.py`
+`root-git/` adalah `.git/` yang di-rename. xbps-src memanggil `git symbolic-ref` untuk detect branch info. Tanpa fix ini, error `fatal: not a git repository` muncul setelah wheel install karena `.git/` di-exclude dari wheel secara default.
 
-Semua output ke terminal harus melalui modul ini. **Jangan pernah `print()` langsung dari modul lain.**
-
-| Fungsi                                            | Keterangan                           |
-|---------------------------------------------------|--------------------------------------|
-| `print_package_table(packages, title, show_desc)` | Tabel Rich untuk list package        |
-| `print_package_info(info)`                        | Panel Rich untuk detail satu package |
-| `print_local_template_info(info)`                 | Panel Rich untuk template lokal      |
-| `print_package_counts(counts, category)`          | Tabel statistik                      |
-| `print_success(msg)`                              | `✔ pesan` (hijau)                    |
-| `print_error(msg)`                                | `✘ pesan` (merah)                    |
-| `print_info(msg)`                                 | `→ pesan` (cyan)                     |
-| `print_warn(msg)`                                 | `! pesan` (kuning)                   |
-
-**Tema warna:**
 ```python
-C_NAME    = "bold cyan"     # nama package
-C_VER     = "green"         # versi
-C_CAT     = "yellow"        # kategori
-C_DESC    = "dim white"     # deskripsi
-C_MAINT   = "dim white"     # maintainer
-C_LOCAL   = "bold green"    # tersedia lokal
-C_MISSING = "dim red"       # belum diunduh
-C_PATH    = "cyan"          # path file
-C_FILE    = "dim cyan"      # listing file
+# Di build_xbps_env():
+if BACKEND_GIT_DIR.is_dir():
+    env["GIT_DIR"]       = str(BACKEND_GIT_DIR)
+    env["GIT_WORK_TREE"] = str(BACKEND_DIR)
+else:
+    # Wheel install: root-git tidak ada, unset agar git tidak salah baca
+    env.pop("GIT_DIR",       None)
+    env.pop("GIT_WORK_TREE", None)
+```
+
+### 5. Pemisahan XBPS_SRCPKGDIR
+
+**v0.1.2:** Satu srcpkgs untuk semua kebutuhan.
+
+**v0.2.0:** Dua srcpkgs dengan peran berbeda:
+
+| Path                                              | Digunakan untuk                                             |
+|---------------------------------------------------|-------------------------------------------------------------|
+| `BACKEND_SRCPKGS_DIR` (`backend/srcpkgs/`)        | Bootstrap only: `binary-bootstrap`, `zap`, `bootstrap`, dll |
+| `LETX_CHROOT_SRCPKGS` (`masterdir/letx-srcpkgs/`) | VUR package builds: `pkg`, `build`, `fetch`, dll            |
+
+## Arsitektur xbps-src Integration
+
+### Dua Instance xbps-src
+
+Setiap `letx -x pkg <nama>` menjalankan **dua instance xbps-src** yang perlu konfigurasi berbeda:
+
+```
+[HOST] outer xbps-src
+  ├── Baca XBPS_SRCPKGDIR dari env var Python
+  │   → LETX_CHROOT_SRCPKGS (host path)
+  ├── setup_pkg() → source template
+  └── chroot_handler()
+        ↓ uunshare via letx.sh
+        ↓ bind mounts:
+        │   BACKEND_DIR      → /void-packages/
+        │   LETX_MASTERDIR   → /
+        │   LETX_CHROOT_SRCPKGS → /void-packages/srcpkgs/  ← overlay
+        ↓
+[CHROOT] inner xbps-src (IN_CHROOT=1)
+  ├── Env di-clear oleh env -i
+  ├── XBPS_SRCPKGDIR = /void-packages/srcpkgs/ (default dari XBPS_DISTDIR)
+  └── /void-packages/srcpkgs/zig/template → accessible ✓
+```
+
+### Routing Command
+
+```python
+CMDS_NEED_PKG  →  _run_with_template()
+  # 1. find_template(): loop core → extra → multilib
+  # 2. stage_vur_template(): copy + inject _package()
+  # 3. env["XBPS_CHROOT_CMD"] = "letx"
+  # 4. env["XBPS_CHROOT_CMD_ARGS"] = bind mount command
+  # 5. subprocess: BACKEND_DIR/xbps-src pkg <nama>
+
+CMDS_NO_PKG    →  _run_xbps_raw()
+  # XBPS_SRCPKGDIR = BACKEND_SRCPKGS_DIR (base-files, base-chroot)
+  # subprocess: BACKEND_DIR/xbps-src <target>
 ```
 
 ## Alur Data
@@ -638,81 +286,71 @@ C_FILE    = "dim cyan"      # listing file
 ### `letx search <keyword>`
 
 ```
-letx search discord
-    │
-    ▼
 cli.py:cmd_search()
     │
-    ├─ args.template? → _search_local_template()
-    │                       → ops/search.py:search_local_template()
-    │                       → utils/print.py:print_local_template_info()
-    │
-    ├─ keyword ada → ops/search.py:search_packages()
-    │                    │
-    │                    ├─ repo/index.py:fetch_index()
-    │                    │       │
-    │                    │       ├─ cache valid → baca file
-    │                    │       └─ expired     → GET GitHub → tulis cache
-    │                    │
-    │                    └─ filter (name + description) → sort by rank
+    ├─ ops/search.py:search_packages()
+    │       │
+    │       └─ repo/index.py:fetch_index()
+    │               ├─ cache valid → baca ~/.cache/letx/packages.json
+    │               └─ expired     → GET GitHub raw → tulis cache
     │
     └─ utils/print.py:print_package_table()
-```
-
-### `letx list -p`
-
-```
-letx list -p
-    │
-    ▼
-cli.py:cmd_list()
-    │
-    ├─ ops/search.py:count_packages()
-    │       │
-    │       └─ fetch_index() → hitung per kategori
-    │
-    └─ utils/print.py:print_package_counts()
 ```
 
 ### `letx get <pkg>`
 
 ```
-letx get discord
-    │
-    ▼
 cli.py:cmd_get()
     │
-    ├─ ops/info.py:get_info()            → cek index + status lokal
-    │
-    ├─ Sudah lokal & tidak --force?      → print_warn(), exit 0
-    │
+    ├─ ops/info.py:get_info()           → cek index + status lokal
+    ├─ Sudah lokal & tidak --force?     → print_warn(), exit 0
     └─ repo/fetch.py:download_package()
-    │       ││
-    │       └─ GitHub Contents API (rekursif)
-    │               ├─ tiap file → GET raw.githubusercontent.com
-    │               └─ tulis ke ~/.config/letx/<category>/<pkg>/
+            │
+            └─ GitHub Contents API (rekursif)
+                    ├─ tiap file → GET raw.githubusercontent.com
+                    └─ tulis ke ~/.config/letx/<kategori>/<pkg>/
+```
+
+### `letx -x pkg <nama>`
+
+```
+cli.py:cmd_xbps()
     │
-    └─ utils/print.py:print_success()
+    └─ utils/xbps.py:run()
+            │
+            └─ _run_with_template()
+                    │
+                    ├─ find_template()          → loop core/extra/multilib
+                    ├─ stage_vur_template()     → masterdir/letx-srcpkgs/<pkg>/
+                    ├─ build_xbps_env()         → set XBPS_CHROOT_CMD=letx
+                    │                              set XBPS_CHROOT_CMD_ARGS
+                    └─ subprocess: backend/xbps-src pkg <nama>
+                            │
+                            └─ chroot via letx.sh
+                                    │
+                                    └─ inner xbps-src
+                                            └─ /void-packages/srcpkgs/<pkg>/ ✓
 ```
 
 ## Setup Development Environment
 
 ```bash
-# 1. Fork dan clone repo
-git clone https://github.com/<username>/Let-X
+# 1. Clone repo
+git clone https://github.com/T4n-Labs/Let-X
 cd Let-X
 
-# 2. Buat virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 3. Install dalam mode development
+# 2. Install dalam mode editable
 pip install -e ".[dev]"
 
-# 4. Verifikasi
+# 3. Verifikasi
+letx --version
 letx --help
-pytest tests/ -v
+
+# 4. Setup build environment (untuk test letx -x)
+letx -x binary-bootstrap
 ```
+
+> **Catatan editable install:** `BACKEND_DIR` menunjuk ke `letx/backend/` di source tree (writable). Perubahan pada `letx.sh` atau file backend lain langsung berlaku tanpa reinstall.
 
 ## Konvensi Kode
 
@@ -724,9 +362,9 @@ pytest tests/ -v
 **Import order:**
 ```python
 # 1. stdlib
+import os
 import sys
 from pathlib import Path
-from typing import Any
 
 # 2. third-party
 import httpx
@@ -739,17 +377,17 @@ from letx.repo.index import fetch_index
 
 **Docstring — semua fungsi publik wajib:**
 ```python
-def search_packages(keyword: str, category: str | None = None) -> list[Package]:
+def find_template(pkgname: str) -> tuple[str, Path] | None:
     """
-    Search packages by keyword (case-insensitive).
-    Matches against: name, description.
+    Cari template VUR di tiga kategori.
+
+    Loop: core → extra → multilib
 
     Args:
-        keyword:  search keyword
-        category: optional filter ("core"|"extra"|"multilib")
+        pkgname: nama package, contoh 'zig'
 
     Returns:
-        Matching packages sorted by relevance.
+        (category, pkg_dir) jika ditemukan, None jika tidak.
     """
 ```
 
@@ -761,17 +399,16 @@ def search_packages(keyword: str, category: str | None = None) -> list[Package]:
 4. Logika bisnis masuk ke `ops/` (bukan di `cli.py`)
 5. Akses data masuk ke `repo/` (bukan di `ops/`)
 6. Output selalu via `utils/print.py`
-7. Tulis test di `tests/`
 
-**Skeleton command baru:**
+**Skeleton:**
 ```python
 # Di build_parser():
 p_remove = sub.add_parser("remove", help="Remove a local template")
 p_remove.add_argument("name", help="Package name")
 
-# Handler:
+# Handler di cli.py:
 def cmd_remove(args: argparse.Namespace) -> int:
-    from letx.ops.remove import remove_template   # modul baru
+    from letx.ops.remove import remove_template
     removed = remove_template(args.name)
     if removed:
         print_success(f"Template '{args.name}' removed.")
@@ -787,13 +424,8 @@ elif args.command == "remove":
 ## Menjalankan Test
 
 ```bash
-# Semua test
 pytest tests/ -v
-
-# File tertentu
 pytest tests/test_search.py -v
-
-# Dengan coverage report
 pytest tests/ --cov=letx --cov-report=term-missing
 ```
 
@@ -808,88 +440,78 @@ def fake_cache(tmp_path, monkeypatch):
     monkeypatch.setattr("letx.repo.index.CACHE_TTL", 9999)
 ```
 
-**Test yang tersedia:**
-
-| Test                                | Keterangan                        |
-|-------------------------------------|-----------------------------------|
-| `test_fetch_index_from_cache`       | Index dibaca dari cache lokal     |
-| `test_get_package_found`            | Cari package yang ada             |
-| `test_get_package_case_insensitive` | `DISCORD` == `discord`            |
-| `test_get_package_not_found`        | Package tidak ada → return `None` |
-| `test_search_by_name`               | Pencarian nama exact              |
-| `test_search_partial`               | Pencarian nama parsial            |
-| `test_search_with_category_filter`  | Filter by kategori                |
-| `test_search_no_results`            | Tidak ada hasil → list kosong     |
-| `test_list_all`                     | List semua package                |
-| `test_list_by_category`             | List filter by kategori           |
-| `test_available_categories`         | Return set kategori unik          |
-
 ## Build Package xbps-src
 
-### Persiapan
+Let-X sekarang bisa build dirinya sendiri via `letx -x`:
 
 ```bash
-git clone https://github.com/void-linux/void-packages ~/void-packages
-cd ~/void-packages
-./xbps-src binary-bootstrap
+# Dari direktori Let-X
+letx get letx            # download template VUR letx
+letx -x pkg letx         # build
 
-cp -r /path/to/Let-X/xbps-template/letx srcpkgs/letx
+# Install
+sudo xbps-install \
+    --repository=$HOME/.config/letx/hostdir/binpkgs letx
 ```
 
-### Update Checksum (Wajib Setiap Rilis)
-
+Untuk release baru, update `checksum` di template VUR setelah source tarball berubah:
 ```bash
-cd ~/void-packages
-./xbps-src fetch letx
-sha256sum $XBPS_SRCDISTDIR/letx-0.1.2.tar.gz
-# → salin hash ke field 'checksum' di srcpkgs/letx/template
-```
-
-### Build dan Test
-
-```bash
-cd ~/void-packages
-
-# Build
-./xbps-src pkg letx
-
-# Cek isi package
-./xbps-src show-files letx
-
-# Install lokal
-xbps-rindex -a hostdir/binpkgs/letx-*.xbps
-sudo xbps-install --repository=/home/$USER/void-packages/hostdir/binpkgs letx
-
-# Verifikasi
-letx --help
-letx -v
-letx search discord
+sha256sum letx-0.2.0.tar.gz
+# → update di VUR template
 ```
 
 ## Dependensi
 
-| Package    | Versi  | Fungsi                                       |
-|------------|--------|----------------------------------------------|
-| `httpx`    | ≥ 0.27 | HTTP client untuk GitHub API                 |
-| `rich`     | ≥ 13.0 | Pretty terminal output (tabel, panel, warna) |
-| `argparse` | stdlib | Parsing argumen CLI (tidak perlu install)    |
+**Runtime:**
 
-**Build dependencies (xbps-src):**
+| Package    | Versi  | Fungsi                       |
+|------------|--------|------------------------------|
+| `httpx`    | ≥ 0.27 | HTTP client untuk GitHub API |
+| `rich`     | ≥ 13.0 | Pretty terminal output       |
+| `argparse` | stdlib | Parsing argumen CLI          |
 
-| Package              | Fungsi          |
-|----------------------|-----------------|
-| `python3-setuptools` | Build backend   |
-| `python3-wheel`      | Packaging wheel |
-| `python3-pip`        | Instalasi       |
+**Dev:**
 
-**Dev dependencies:**
+| Package        | Fungsi            |
+|----------------|-------------------|
+| `pytest`       | Test runner       |
+| `pytest-httpx` | Mock HTTP request |
 
-| Package        | Fungsi                       |
-|----------------|------------------------------|
-| `pytest`       | Test runner                  |
-| `pytest-httpx` | Mock HTTP request untuk test |
+**Sistem (untuk `letx -x`):**
 
-*Let-X v0.2.0 — VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*
+| Binary          | Fungsi                                 |
+|-----------------|----------------------------------------|
+| `xbps-uunshare` | User namespace chroot (via xbps-tools) |
+| `xbps-create`   | Buat binary package                    |
+| `xbps-rindex`   | Register package ke repo               |
+
+## Catatan Pengembangan Selanjutnya
+
+Beberapa hal yang perlu diperhatikan untuk pengembangan v0.3.0+:
+
+### 1. Staging Cleanup
+
+Saat ini `masterdir/letx-srcpkgs/<pkgname>/` **tidak dihapus** setelah build selesai. Untuk build yang banyak, direktori ini akan terus bertambah. Pertimbangkan cleanup otomatis setelah `proc.returncode == 0` di `_run_with_template()`.
+
+### 2. letx.sh — Kompatibilitas Chroot Style Lain
+
+`letx.sh` ditulis khusus untuk `xbps-uunshare`. Jika sistem menggunakan `bwrap` atau `uchroot` (lihat `common/chroot-style/`), perlu dibuat script padanan:
+- `letx-bwrap.sh` untuk sistem yang menggunakan bwrap
+- Deteksi otomatis chroot style yang tersedia di `build_xbps_env()`
+
+### 3. `_package()` Injection — Edge Cases
+
+Saat ini injeksi `${pkgname}_package() { :; }` dilakukan dengan cek string sederhana (`f"{func_name}()" not in content`). Ini bisa false-positive jika ada komentar yang menyebut nama fungsi. Pertimbangkan parsing bash yang lebih robust jika diperlukan.
+
+### 4. `LETX_SRCPKGS_DIR` (Legacy)
+
+`~/.config/letx/srcpkgs/` masih ada di `config.py` dan `ensure_dirs()` sebagai legacy. Bisa dihapus di versi berikutnya jika tidak ada yang bergantung padanya.
+
+### 5. Multi-package Template (Subpackage)
+
+Template dengan `$subpackages` (contoh: `discord` + `discord-devel`) belum ditest dengan sistem staging saat ini. `stage_vur_template()` hanya copy satu `pkgname/` — subpackage templates perlu di-handle juga.
+
+*Let-X v0.2.0 · VUR: [github.com/T4n-Labs/vur](https://github.com/T4n-Labs/vur)*
 
 ---
 

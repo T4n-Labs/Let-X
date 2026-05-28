@@ -6,19 +6,11 @@ from __future__ import annotations
 from pathlib import Path
 
 # ─── Package internals ────────────────────────────────────────────
-# Resolve BACKEND_DIR dari lokasi file ini (__file__) supaya path
-# tetap valid baik saat dijalankan dari source maupun setelah
-# di-install sebagai wheel ke /usr/lib/letx/
-_LETX_PKG_DIR = Path(__file__).parent        # .../letx/
-BACKEND_DIR   = _LETX_PKG_DIR / "backend"   # .../letx/backend/
-XBPS_SRC_PATH = BACKEND_DIR / "xbps-src"    # .../letx/backend/xbps-src
+_LETX_PKG_DIR = Path(__file__).parent
+BACKEND_DIR   = _LETX_PKG_DIR / "backend"
+XBPS_SRC_PATH = BACKEND_DIR / "xbps-src"
 
 # ─── Backend git dir ──────────────────────────────────────────────
-# xbps-src memanggil `git symbolic-ref` untuk detect branch info.
-# Direktori .git/ di backend/ sudah diganti nama menjadi root-git/
-# agar tidak bentrok dengan .git/ proyek Let-X itu sendiri.
-# GIT_DIR di-set ke path ini di build_xbps_env() supaya git
-# tetap bisa menemukan repo-nya.
 BACKEND_GIT_DIR = BACKEND_DIR / "root-git"
 
 # ─── VUR Remote ───────────────────────────────────────────────────
@@ -35,44 +27,45 @@ CATEGORIES_URL = f"{VUR_RAW_BASE}/categories.json"
 CONFIG_DIR = Path.home() / ".config" / "letx"
 CACHE_DIR  = Path.home() / ".cache"  / "letx"
 
-# Template storage directories (hasil `letx get`)
-# Struktur: ~/.config/letx/<category>/<pkgname>/template
 CATEGORIES: tuple[str, ...] = ("core", "extra", "multilib")
 
 TEMPLATE_DIRS: dict[str, Path] = {
     cat: CONFIG_DIR / cat for cat in CATEGORIES
 }
 
-# Cache files
 PACKAGES_CACHE   = CACHE_DIR / "packages.json"
 CATEGORIES_CACHE = CACHE_DIR / "categories.json"
 
-# Cache TTL in seconds (default: 1 hour)
 CACHE_TTL = 3600
 
 # ─── xbps-src workdirs ────────────────────────────────────────────
 #
-# BACKEND_SRCPKGS_DIR : template internal xbps-src (bundled di repo)
-#   Dipakai oleh command bootstrap: binary-bootstrap, bootstrap,
-#   bootstrap-update, consistency-check, remove-autodeps, zap, dll.
-#   Berisi: base-files/, base-chroot/ — template yang dibutuhkan
-#   xbps-src untuk setup dan manage chroot environment.
-#
-# LETX_SRCPKGS_DIR : symlink bridge untuk VUR templates (user)
-#   ~/.config/letx/srcpkgs/<pkgname> → ~/.config/letx/<cat>/<pkgname>/
-#   Dipakai oleh command pkg: pkg, build, fetch, install, dll.
+# BACKEND_SRCPKGS_DIR : template internal xbps-src (backend only)
+#   Hanya untuk: binary-bootstrap, bootstrap, zap, consistency-check, dll.
+#   Berisi: base-files/, base-chroot/
+#   TIDAK dipakai untuk build VUR packages.
 #
 # LETX_MASTERDIR : chroot environment xbps-src
-#   Di-pass ke xbps-src via flag -m
-#   Dibuat oleh xbps-src sendiri saat `letx -x binary-bootstrap`
+#   Dibuat oleh xbps-src saat `letx -x binary-bootstrap`.
+#   Di-pass ke xbps-src via flag -m.
+#
+# LETX_CHROOT_SRCPKGS : staging area VUR templates di dalam masterdir
+#   Path: ~/.config/letx/masterdir/letx-srcpkgs/
+#   Di dalam chroot accessible sebagai: /letx-srcpkgs/
+#   AMAN — tidak ditimpa oleh bind mount manapun (bukan /void-packages/).
+#   Template di-stage dari core/extra/multilib ke sini sebelum build.
+#   Source template di core/extra/multilib TIDAK PERNAH dimodifikasi.
+#   xbps-src diarahkan ke sini via XBPS_SRCPKGDIR=/letx-srcpkgs/
+#   yang ditulis ke masterdir/etc/xbps/xbps-src.conf sebelum setiap build.
 #
 # LETX_HOSTDIR : output build (.xbps packages, sources, repocache)
-#   Di-pass ke xbps-src via flag -H
+#   Di-pass ke xbps-src via flag -H.
 #
-BACKEND_SRCPKGS_DIR = BACKEND_DIR / "srcpkgs"   # bundled, static
-LETX_SRCPKGS_DIR    = CONFIG_DIR  / "srcpkgs"   # user VUR, dynamic
-LETX_MASTERDIR      = CONFIG_DIR  / "masterdir"
-LETX_HOSTDIR        = CONFIG_DIR  / "hostdir"
+BACKEND_SRCPKGS_DIR = BACKEND_DIR   / "srcpkgs"
+LETX_SRCPKGS_DIR    = CONFIG_DIR    / "srcpkgs"       # legacy, kept for compat
+LETX_MASTERDIR      = CONFIG_DIR    / "masterdir"
+LETX_CHROOT_SRCPKGS = LETX_MASTERDIR / "letx-srcpkgs" # /letx-srcpkgs/ di chroot
+LETX_HOSTDIR        = CONFIG_DIR    / "hostdir"
 
 
 # ─── Directory setup ──────────────────────────────────────────────
@@ -81,18 +74,15 @@ def ensure_dirs() -> None:
     """
     Buat semua direktori Let-X yang dikelola jika belum ada.
 
-    Dipanggil otomatis oleh repo/fetch.py dan repo/index.py sebelum
-    operasi baca/tulis apapun.
-
     Catatan: LETX_MASTERDIR dan LETX_HOSTDIR TIDAK dibuat di sini —
     xbps-src yang mengelolanya sendiri via `binary-bootstrap`.
-    Membuatnya prematur bisa mengacaukan pengecekan init chroot xbps-src.
-    LETX_SRCPKGS_DIR dibuat di sini karena dibutuhkan saat `letx get`.
+    LETX_CHROOT_SRCPKGS juga tidak dibuat di sini — dibuat oleh
+    stage_vur_template() saat pertama kali dibutuhkan.
     """
     managed: list[Path] = [
-        *TEMPLATE_DIRS.values(),  # ~/.config/letx/{core,extra,multilib}/
-        LETX_SRCPKGS_DIR,         # ~/.config/letx/srcpkgs/
-        CACHE_DIR,                # ~/.cache/letx/
+        *TEMPLATE_DIRS.values(),
+        LETX_SRCPKGS_DIR,
+        CACHE_DIR,
     ]
     for d in managed:
         d.mkdir(parents=True, exist_ok=True)
@@ -102,12 +92,8 @@ def ensure_xbps_workdirs() -> None:
     """
     Buat direktori kerja xbps-src jika belum ada.
 
-    Dipisah dari ensure_dirs() karena direktori ini hanya perlu dibuat
-    tepat sebelum xbps-src pertama kali dipanggil — bukan di setiap
-    command letx. Dipanggil oleh utils/xbps.py.
-
-    LETX_MASTERDIR dikecualikan karena xbps-src yang membuatnya sendiri
-    saat binary-bootstrap. Kita hanya perlu pastikan parent-nya ada.
+    LETX_MASTERDIR dikecualikan — xbps-src yang membuatnya saat
+    binary-bootstrap.
     """
     LETX_HOSTDIR.mkdir(parents=True, exist_ok=True)
     LETX_MASTERDIR.parent.mkdir(parents=True, exist_ok=True)
