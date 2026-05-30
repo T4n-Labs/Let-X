@@ -6,6 +6,7 @@
 
 - [Project Architecture](#project-architecture)
 - [Directory Structure](#directory-structure)
+- [Core Package](#core-package)
 - [Module Reference](#module-reference)
 - [Changes v0.1.2 → v0.2.0](#changes-v012--v020)
 - [xbps-src Integration Architecture](#xbps-src-integration-architecture)
@@ -94,6 +95,10 @@ Let-X/
 ├── pyproject.toml
 └── tests/
 ```
+
+
+## Core Package
+Information : https://github.com/T4n-Labs/Let-X/tree/core
 
 ## Module Reference
 
