@@ -6,6 +6,7 @@
 
 - [Arsitektur Proyek](#arsitektur-proyek)
 - [Struktur Direktori](#struktur-direktori)
+- [Package Utama](#package-utama)
 - [Referensi Modul](#referensi-modul)
 - [Perubahan v0.1.2 → v0.2.0](#perubahan-v012--v020)
 - [Arsitektur xbps-src Integration](#arsitektur-xbps-src-integration)
@@ -94,6 +95,9 @@ Let-X/
 ├── pyproject.toml
 └── tests/
 ```
+
+## Package Utama
+Informasi : https://github.com/T4n-Labs/Let-X/tree/core
 
 ## Referensi Modul
 
