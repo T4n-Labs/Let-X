@@ -1,0 +1,52 @@
+# =============================================================
+#  Let-X — Required srcpkgs list
+#  Format: satu nama folder per baris
+#  Baris yang diawali '#' adalah komentar, baris kosong diabaikan
+# =============================================================
+
+# ── Folder Utama (direktori berisi template) ─────────────────
+base-files
+base-chroot
+base-chroot-cyclic-solver
+gcc
+binutils
+glibc
+musl
+zlib
+curl
+zstd
+xbps
+jansson
+c-ares
+nghttp2
+libssh2
+libev
+chroot-bash
+chroot-git
+chroot-distcc
+
+# ── Symlink Subpackage (link ke folder utama) ────────────────
+binutils-devel
+binutils-libs
+libgcc
+libgcc-devel
+libstdc++
+libstdc++-devel
+libatomic
+libatomic-devel
+glibc-devel
+glibc-locales
+musl-devel
+zlib-devel
+libcurl
+libcurl-devel
+libzstd
+libzstd-devel
+libxbps
+libxbps-devel
+xbps-tests
+jansson-devel
+c-ares-devel
+nghttp2-devel
+libssh2-devel
+libev-devel
