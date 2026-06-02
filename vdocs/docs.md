@@ -14,5 +14,9 @@
 - Documentation Let-X for Developer : [Here](./EN/dev.md)
 
 ---
-* @T4n-Labs
-* @Gh0sT4n
+
+<div align="center">
+
+[@T4n-Labs](https://t4n-labs.github.io/site) · [@Gh0sT4n](https://gh0st4n.github.io/site)
+
+</div>
