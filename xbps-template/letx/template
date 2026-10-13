@@ -7,8 +7,7 @@ maintainer="Gh0sT4n <darskevoid@gmail.com>"
 license="BSD-2-Clause"
 homepage="https://github.com/T4n-Labs/Let-X"
 distfiles="https://github.com/T4n-Labs/Let-X/archive/refs/tags/v${version}.tar.gz"
-
-checksum=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+checksum=c591d7853d10975481d825ce70b67c4b4aa690611f04ad5f8d8836c764c28191
 
 # ── Dependencies ───────────────────────────────────────────────────
 # Tidak pakai build_style=python3-module karena masih memanggil
