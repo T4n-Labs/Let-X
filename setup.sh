@@ -1,11 +1,9 @@
 #!/bin/bash
-
 ################################################################################
 # Let-X Installation & Uninstallation Script
 # Void User Repository (VUR) Helper Tool
 # Author: Gh0sT4n
 ################################################################################
-
 set -e
 
 # Colors for output
@@ -18,12 +16,20 @@ NC='\033[0m' # No Color
 # Variables
 APP_NAME="letx"
 INSTALL_DIR="/usr/local"
-USER_INSTALL_DIR="$HOME/.local"
+
+# PERBAIKAN: Deteksi direktori home pengguna asli, bahkan jika dijalankan dengan sudo
+if [ -n "$SUDO_USER" ]; then
+    REAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+    REAL_HOME="$HOME"
+fi
+
+USER_INSTALL_DIR="$REAL_HOME/.local"
 PYTHON_SCRIPT_DIR="$INSTALL_DIR/lib/$APP_NAME"
 USER_PYTHON_SCRIPT_DIR="$USER_INSTALL_DIR/lib/$APP_NAME"
 BIN_DIR="$INSTALL_DIR/bin"
 USER_BIN_DIR="$USER_INSTALL_DIR/bin"
-CONFIG_DIR="$HOME/.config/$APP_NAME"
+CONFIG_DIR="$REAL_HOME/.config/$APP_NAME"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Functions
@@ -32,7 +38,7 @@ print_banner() {
     echo "╔═══════════════════════════════════════════════════════╗"
     echo "║          Let-X - VUR Helper Tool                      ║"
     echo "║          Installation/Uninstallation Script           ║"
-    echo "╚═══════════════════════════════════════════════════════╝"
+    echo "═══════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
 
@@ -85,7 +91,6 @@ copy_files() {
     
     if [ "$target_dir" = "system" ]; then
         sudo cp -r "$REPO_DIR/letx/"* "$PYTHON_SCRIPT_DIR/"
-        # PERBAIKAN: sys.path sekarang menunjuk ke /usr/local/lib, bukan /usr/local/lib/letx
         sudo tee "$BIN_DIR/$APP_NAME" > /dev/null << 'EOF'
 #!/usr/bin/env python3
 import sys
@@ -97,11 +102,10 @@ EOF
         sudo chmod +x "$BIN_DIR/$APP_NAME"
     else
         cp -r "$REPO_DIR/letx/"* "$USER_PYTHON_SCRIPT_DIR/"
-        # PERBAIKAN: Menggunakan EOF tanpa tanda kutip agar $HOME diekspansi dengan benar
         tee "$USER_BIN_DIR/$APP_NAME" > /dev/null << EOF
 #!/usr/bin/env python3
 import sys
-sys.path.insert(0, '$HOME/.local/lib')
+sys.path.insert(0, '$REAL_HOME/.local/lib')
 from letx.main import main
 if __name__ == "__main__":
     main()
@@ -117,9 +121,9 @@ install_standard() {
     if [ "$install_type" = "user" ]; then
         create_directories "user"
         copy_files "user"
-        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-            log_warn "Adding $HOME/.local/bin to PATH..."
-            echo -e "\n# Added by Let-X installation\nexport PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
+        if [[ ":$PATH:" != *":$REAL_HOME/.local/bin:"* ]]; then
+            log_warn "Adding $REAL_HOME/.local/bin to PATH..."
+            echo -e "\n# Added by Let-X installation\nexport PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$REAL_HOME/.bashrc"
             log_info "Please restart your terminal or run: source ~/.bashrc"
         fi
     else
@@ -153,8 +157,29 @@ do_install() {
     print_banner
     log_info "Starting Let-X installation..."
     check_dependencies
-    
+
+    # DETEKSI KONFLIK: Cek apakah instalasi lain sudah ada
+    local system_exists=false
+    local user_exists=false
+
+    [ -d "$PYTHON_SCRIPT_DIR" ] || [ -f "$BIN_DIR/$APP_NAME" ] && system_exists=true
+    [ -d "$USER_PYTHON_SCRIPT_DIR" ] || [ -f "$USER_BIN_DIR/$APP_NAME" ] && user_exists=true
+
     if [ "$install_type" = "user" ]; then
+        # Jika user install, tapi ada versi root
+        if [ "$system_exists" = true ]; then
+            log_warn "A system-wide installation was detected at $BIN_DIR/$APP_NAME."
+            read -p "Do you want to remove the system-wide installation and proceed with user-only installation? [Y/n] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                log_info "Removing system-wide installation..."
+                sudo rm -rf "$PYTHON_SCRIPT_DIR"
+                sudo rm -f "$BIN_DIR/$APP_NAME"
+            else
+                log_info "Installation cancelled."
+                exit 0
+            fi
+        fi
         log_info "Installing for user only (no sudo required)..."
         install_standard "user"
     else
@@ -162,6 +187,25 @@ do_install() {
             log_error "System-wide installation requires sudo privileges."
             log_error "Please run: sudo $0 --install"
             exit 1
+        fi
+        # Jika root install, tapi ada versi user
+        if [ "$user_exists" = true ]; then
+            log_warn "A user-only installation was detected at $USER_BIN_DIR/$APP_NAME."
+            read -p "Do you want to remove the user-only installation and proceed with system-wide installation? [Y/n] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                log_info "Removing user-only installation..."
+                rm -rf "$USER_PYTHON_SCRIPT_DIR"
+                rm -f "$USER_BIN_DIR/$APP_NAME"
+                # Bersihkan PATH di bashrc
+                if grep -q "# Added by Let-X installation" "$REAL_HOME/.bashrc" 2>/dev/null; then
+                    sed -i '/# Added by Let-X installation/d' "$REAL_HOME/.bashrc"
+                    sed -i '/export PATH="\$HOME\/.local\/bin:\$PATH"/d' "$REAL_HOME/.bashrc"
+                fi
+            else
+                log_info "Installation cancelled."
+                exit 0
+            fi
         fi
         log_info "Performing system-wide installation..."
         install_standard "system"
@@ -180,28 +224,36 @@ do_uninstall() {
         log_info "Uninstallation cancelled."
         exit 0
     fi
-    
-    if [ -d "$PYTHON_SCRIPT_DIR" ]; then
+
+    # Hapus instalasi sistem (jika ada)
+    if [ -d "$PYTHON_SCRIPT_DIR" ] || [ -f "$BIN_DIR/$APP_NAME" ]; then
         log_info "Removing system-wide installation..."
         sudo rm -rf "$PYTHON_SCRIPT_DIR"
         sudo rm -f "$BIN_DIR/$APP_NAME"
     fi
-    if [ -d "$USER_PYTHON_SCRIPT_DIR" ]; then
-        log_info "Removing user installation..."
+
+    # Hapus instalasi user (menggunakan REAL_HOME agar aman dari sudo)
+    if [ -d "$USER_PYTHON_SCRIPT_DIR" ] || [ -f "$USER_BIN_DIR/$APP_NAME" ]; then
+        log_info "Removing user installation from $REAL_HOME..."
         rm -rf "$USER_PYTHON_SCRIPT_DIR"
         rm -f "$USER_BIN_DIR/$APP_NAME"
     fi
+
+    # Hapus konfigurasi jika diminta
     if [ "$clean_config" = "true" ] && [ -d "$CONFIG_DIR" ]; then
         log_warn "Removing configuration directory..."
         rm -rf "$CONFIG_DIR"
     else
         [ -d "$CONFIG_DIR" ] && log_info "Configuration directory preserved at $CONFIG_DIR"
     fi
-    
-    if grep -q "# Added by Let-X installation" "$HOME/.bashrc" 2>/dev/null; then
-        sed -i '/# Added by Let-X installation/d' "$HOME/.bashrc"
-        sed -i '/export PATH="\$HOME\/.local\/bin:\$PATH"/d' "$HOME/.bashrc"
+
+    # Bersihkan bashrc
+    if grep -q "# Added by Let-X installation" "$REAL_HOME/.bashrc" 2>/dev/null; then
+        log_info "Cleaning up bashrc..."
+        sed -i '/# Added by Let-X installation/d' "$REAL_HOME/.bashrc"
+        sed -i '/export PATH="\$HOME\/.local\/bin:\$PATH"/d' "$REAL_HOME/.bashrc"
     fi
+
     log_info "✓ Let-X has been uninstalled successfully."
 }
 
