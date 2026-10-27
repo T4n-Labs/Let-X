@@ -175,19 +175,33 @@ letx/
 └── README-ID.md         # Dokumentasi ini (Bahasa Indonesia)
 ```
 
-## 🛠️ Pengembangan (Development)
+## 🛠️ Pengembangan & Pengujian (Development & Testing)
 
-Jika Anda ingin berkontribusi atau memodifikasi kode:
+Jika Anda ingin berkontribusi atau memodifikasi kode, ikuti langkah-langkah berikut:
 
-1. Clone repositori dan masuk ke direktori proyek.
-2. Sinkronkan lingkungan pengembangan:
+1. **Clone repositori dan masuk ke direktori proyek:**
    ```bash
-   uv sync
+   git clone https://github.com/T4n-Labs/letx.git
+   cd letx
    ```
-3. Jalankan secara langsung tanpa menginstal:
+
+2. **Sinkronkan lingkungan pengembangan dengan alat uji:**
+   ```bash
+   uv sync --extra dev
+   ```
+
+3. **Jalankan suite pengujian (test suite):**
+   ```bash
+   uv run pytest tests/ -v
+   ```
+
+4. **Jalankan secara langsung tanpa menginstal:**
    ```bash
    uv run letx --help
    ```
+
+### 🧪 Menulis Tes
+Semua fitur baru atau perbaikan bug harus menyertakan pengujian yang sesuai di direktori `tests/`. Kami menggunakan `pytest` sebagai framework pengujian. Pastikan semua tes berhasil (`passed`) sebelum mengirimkan Pull Request.
 
 ## 📜 Lisensi
 

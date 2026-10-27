@@ -175,19 +175,33 @@ letx/
 └── README.md            # This documentation
 ```
 
-## 🛠️ Development
+## 🛠️ Development & Testing
 
-If you want to contribute or modify the code:
+If you want to contribute or modify the code, follow these steps:
 
-1. Clone the repository and navigate to the project directory.
-2. Sync the development environment:
+1. **Clone the repository and navigate to the project directory:**
    ```bash
-   uv sync
+   git clone https://github.com/T4n-Labs/letx.git
+   cd letx
    ```
-3. Run directly without installing:
+
+2. **Sync the development environment with testing tools:**
+   ```bash
+   uv sync --extra dev
+   ```
+
+3. **Run the test suite:**
+   ```bash
+   uv run pytest tests/ -v
+   ```
+
+4. **Run directly without installing:**
    ```bash
    uv run letx --help
    ```
+
+### 🧪 Writing Tests
+All new features or bug fixes should include corresponding tests in the `tests/` directory. We use `pytest` as the testing framework. Ensure all tests pass before submitting a Pull Request.
 
 ## 📜 License
 
