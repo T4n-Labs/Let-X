@@ -8,7 +8,7 @@
 - 🔍 **Flexible Search**: Search for packages by name, description, or category.
 - 📦 **Template Management**: Automatically download and update Void Linux `template` files to your local configuration directory.
 - 📊 **Formatted Detailed Information**: Display package metadata and dependencies (`hostmakedepends`, `makedepends`, `depends`) in a clean, easy-to-read 4-column grid format.
--  **Local Caching**: The JSON database is stored locally in `~/.config/letx/db/` for fast offline access after the initial sync.
+- 💾 **Local Caching**: The JSON database is stored locally in `~/.config/letx/db/` for fast offline access after the initial sync.
 
 ## 📦 Installation
 
@@ -16,7 +16,7 @@
 - Python 3.10 or newer
 - [`uv`](https://docs.astral.sh/uv/) (Recommended for fast package management and building)
 
-### Installation Steps
+### Method 1: Using `uv` (Recommended)
 
 1. **Clone this repository:**
    ```bash
@@ -38,6 +38,27 @@
    letx --help
    ```
 
+### Method 2: Using the Setup Script (`setup.sh`)
+
+For a quick and automated installation (including system-wide or user-local setups), you can use the provided `setup.sh` script.
+
+1. **Make the script executable:**
+   ```bash
+   chmod +x setup.sh
+   ```
+
+2. **Run the installation:**
+   *For system-wide installation (requires sudo):*
+   ```bash
+   sudo ./setup.sh --install
+   ```
+   *For user-only installation (no sudo required):*
+   ```bash
+   ./setup.sh --install user
+   ```
+
+> **Note:** The `setup.sh` script is maintained exclusively by **Gh0sT4n**.
+
 ## 🚀 Usage
 
 ### 1. Update the Database
@@ -48,10 +69,10 @@ letx update
 *Output:*
 ```text
 🔄 Updating VUR database...
-   ⤓ Downloading packages.json...
+    Downloading packages.json...
    ⤓ Downloading search.json...
    ⤓ Downloading index.json...
-    Downloading categories.json...
+   ⤓ Downloading categories.json...
 ✔ Database successfully updated!
 ```
 
@@ -131,10 +152,10 @@ Let-X stores cached data and templates in the user's configuration directory (`~
 │   ├── index.json
 │   └── categories.json
 ├── core/                # Templates for 'core' category packages
-│   └── calamares/
+│   ── calamares/
 │       └── template
 ├── extra/               # Templates for 'extra' category packages
-── multilib/            # Templates for 'multilib' category packages
+└── multilib/            # Templates for 'multilib' category packages
 ```
 
 ## 🏗️ Project Structure
@@ -172,6 +193,6 @@ If you want to contribute or modify the code:
 
 This project is distributed under the same license as the parent repository. Please see the [`LICENSE`](LICENSE) file for more details.
 
-## 👥 Contributors
+## 👥 Maintainer
 
-- **Gh0sT4n** - *Lead Developer & Distributor* ([darskevoid@gmail.com](mailto:darskevoid@gmail.com))
+- **Gh0sT4n** - *Lead Developer, Distributor & Sole Maintainer* ([darskevoid@gmail.com](mailto:darskevoid@gmail.com))

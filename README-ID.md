@@ -4,7 +4,7 @@
 
 ## ✨ Fitur
 
-- 🚀 **Cepat & Ringan**: Hanya menggunakan *Python Standard Library* (`urllib`, `json`, `re`, `argparse`, `pathlib`), sehingga tidak memerlukan `pip install` untuk dependensi eksternal.
+- 🚀 **Cepat & Ringan**: Hanya menggunakan **Python Standard Library** (`urllib`, `json`, `re`, `argparse`, `pathlib`), sehingga tidak memerlukan `pip install` untuk dependensi eksternal.
 - 🔍 **Pencarian Fleksibel**: Cari paket berdasarkan nama, deskripsi, atau kategori.
 - 📦 **Manajemen Template**: Unduh dan perbarui file `template` Void Linux secara otomatis ke direktori konfigurasi lokal.
 - 📊 **Informasi Detail Terformat**: Tampilkan metadata paket dan dependensi (`hostmakedepends`, `makedepends`, `depends`) dalam format grid 4 kolom yang rapi dan mudah dibaca.
@@ -16,7 +16,7 @@
 - Python 3.10 atau lebih baru
 - [`uv`](https://docs.astral.sh/uv/) (Direkomendasikan untuk manajemen paket dan build yang cepat)
 
-### Langkah Instalasi
+### Metode 1: Menggunakan `uv` (Direkomendasikan)
 
 1. **Clone repositori ini:**
    ```bash
@@ -37,6 +37,27 @@
    ```bash
    letx --help
    ```
+
+### Metode 2: Menggunakan Script Setup (`setup.sh`)
+
+Untuk instalasi yang cepat dan otomatis (termasuk setup sistem-wide atau user-local), Anda dapat menggunakan script `setup.sh` yang telah disediakan.
+
+1. **Buat script dapat dieksekusi:**
+   ```bash
+   chmod +x setup.sh
+   ```
+
+2. **Jalankan instalasi:**
+   *Untuk instalasi sistem-wide (memerlukan sudo):*
+   ```bash
+   sudo ./setup.sh --install
+   ```
+   *Untuk instalasi user-only (tanpa sudo):*
+   ```bash
+   ./setup.sh --install user
+   ```
+
+> **Catatan:** Script `setup.sh` ini dikelola secara eksklusif oleh **Gh0sT4n**.
 
 ## 🚀 Penggunaan
 
@@ -151,7 +172,7 @@ letx/
 │       └── utility.py   # Fungsi utilitas (fetch, parse template, format grid)
 ├── pyproject.toml       # Konfigurasi build dan metadata proyek
 ├── LICENSE              # Lisensi proyek
-└── README.md            # Dokumentasi ini
+└── README-ID.md         # Dokumentasi ini (Bahasa Indonesia)
 ```
 
 ## 🛠️ Pengembangan (Development)
@@ -172,6 +193,6 @@ Jika Anda ingin berkontribusi atau memodifikasi kode:
 
 Proyek ini didistribusikan di bawah lisensi yang sama dengan repositori induknya. Silakan lihat file [`LICENSE`](LICENSE) untuk detail lebih lanjut.
 
-## 👥 Kontributor
+## 👥 Maintainer
 
-- **Gh0sT4n** - *Lead Developer & Distributor* ([darskevoid@gmail.com](mailto:darskevoid@gmail.com))
+- **Gh0sT4n** - *Lead Developer, Distributor & Satu-satunya Maintainer* ([darskevoid@gmail.com](mailto:darskevoid@gmail.com))
