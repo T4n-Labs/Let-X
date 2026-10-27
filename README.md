@@ -1,47 +1,47 @@
 # Let-X
 
-**Let-X** adalah alat bantu CLI (*Command Line Interface*) yang ringan dan cepat untuk mengelola **Void User Repository (VUR)**. Dibangun menggunakan Python murni (tanpa dependensi pihak ketiga), Let-X memudahkan pengguna untuk mencari, mengambil, memperbarui, dan melihat informasi detail paket dari repositori VUR.
+**Let-X** is a lightweight and fast CLI (Command Line Interface) tool designed to manage the **Void User Repository (VUR)**. Built using pure Python (without any third-party dependencies), Let-X makes it easy for users to search, retrieve, update, and view detailed package information from the VUR repository.
 
-## ✨ Fitur
+## ✨ Features
 
-- 🚀 **Cepat & Ringan**: Hanya menggunakan *Python Standard Library* (`urllib`, `json`, `re`, `argparse`, `pathlib`), sehingga tidak memerlukan `pip install` untuk dependensi eksternal.
-- 🔍 **Pencarian Fleksibel**: Cari paket berdasarkan nama, deskripsi, atau kategori.
-- 📦 **Manajemen Template**: Unduh dan perbarui file `template` Void Linux secara otomatis ke direktori konfigurasi lokal.
-- 📊 **Informasi Detail Terformat**: Tampilkan metadata paket dan dependensi (`hostmakedepends`, `makedepends`, `depends`) dalam format grid 4 kolom yang rapi dan mudah dibaca.
-- 💾 **Caching Lokal**: Database JSON disimpan secara lokal di `~/.config/letx/db/` untuk akses offline yang cepat setelah sinkronisasi awal.
+- 🚀 **Fast & Lightweight**: Uses only the **Python Standard Library** (`urllib`, `json`, `re`, `argparse`, `pathlib`), meaning no external `pip install` dependencies are required.
+- 🔍 **Flexible Search**: Search for packages by name, description, or category.
+- 📦 **Template Management**: Automatically download and update Void Linux `template` files to your local configuration directory.
+- 📊 **Formatted Detailed Information**: Display package metadata and dependencies (`hostmakedepends`, `makedepends`, `depends`) in a clean, easy-to-read 4-column grid format.
+-  **Local Caching**: The JSON database is stored locally in `~/.config/letx/db/` for fast offline access after the initial sync.
 
-## 📦 Instalasi
+## 📦 Installation
 
-### Prasyarat
-- Python 3.10 atau lebih baru
-- [`uv`](https://docs.astral.sh/uv/) (Direkomendasikan untuk manajemen paket dan build yang cepat)
+### Prerequisites
+- Python 3.10 or newer
+- [`uv`](https://docs.astral.sh/uv/) (Recommended for fast package management and building)
 
-### Langkah Instalasi
+### Installation Steps
 
-1. **Clone repositori ini:**
+1. **Clone this repository:**
    ```bash
    git clone https://github.com/T4n-Labs/letx.git
    cd letx
    ```
 
-2. **Instal menggunakan `uv` (Global/Tool):**
+2. **Install using `uv` (Global/Tool):**
    ```bash
    uv tool install .
    ```
-   *Atau, untuk instalasi mode pengembangan (editable):*
+   *Alternatively, for development (editable) mode:*
    ```bash
    uv pip install -e .
    ```
 
-3. **Verifikasi instalasi:**
+3. **Verify the installation:**
    ```bash
    letx --help
    ```
 
-## 🚀 Penggunaan
+## 🚀 Usage
 
-### 1. Memperbarui Database
-Sebelum menggunakan fitur lainnya, sinkronkan database lokal dengan repositori VUR terbaru:
+### 1. Update the Database
+Before using other features, sync your local database with the latest VUR repository:
 ```bash
 letx update
 ```
@@ -51,12 +51,12 @@ letx update
    ⤓ Downloading packages.json...
    ⤓ Downloading search.json...
    ⤓ Downloading index.json...
-   ⤓ Downloading categories.json...
+    Downloading categories.json...
 ✔ Database successfully updated!
 ```
 
-### 2. Mencari Paket
-Cari paket berdasarkan nama, deskripsi, atau kategori (misalnya: "browser", "dinit", "core"):
+### 2. Search for a Package
+Search for packages by name, description, or category (e.g., "browser", "dinit", "core"):
 ```bash
 letx search browser
 ```
@@ -73,20 +73,20 @@ helium-browser                 | extra      | Private, fast, and honest web bro.
 zen-browser                    | extra      | Performance oriented Firefox-base...
 ```
 
-### 3. Mengambil Template Paket
-Unduh file `template` Void Linux untuk paket tertentu ke direktori konfigurasi lokal:
+### 3. Retrieve a Package Template
+Download the Void Linux `template` file for a specific package to your local configuration directory:
 ```bash
 letx get calamares
 ```
 
-### 4. Memperbarui Template Paket
-Jika maintainer merilis revisi baru pada template, perbarui template spesifik tanpa mengunduh ulang seluruh database:
+### 4. Update a Package Template
+If a maintainer releases a new revision for a template, update that specific template without re-downloading the entire database:
 ```bash
 letx update calamares
 ```
 
-### 5. Melihat Informasi Detail Paket
-Tampilkan metadata lengkap paket, termasuk dependensi yang diformat dalam grid 4 kolom:
+### 5. View Detailed Package Information
+Display complete package metadata, including dependencies formatted in a 4-column grid:
 ```bash
 letx info calamares
 ```
@@ -119,59 +119,59 @@ Depends         :
 -) libpwquality        -) icu                 -) rsync               
 ```
 
-## 📂 Struktur Direktori & Konfigurasi
+## 📂 Directory & Configuration Structure
 
-Let-X menyimpan data caching dan template di direktori konfigurasi pengguna (`~/.config/letx/`):
+Let-X stores cached data and templates in the user's configuration directory (`~/.config/letx/`):
 
 ```text
 ~/.config/letx/
-├── db/                  # Cache database JSON lokal
+├── db/                  # Local JSON database cache
 │   ├── packages.json
 │   ├── search.json
 │   ├── index.json
 │   └── categories.json
-├── core/                # Template paket kategori 'core'
+├── core/                # Templates for 'core' category packages
 │   └── calamares/
 │       └── template
-├── extra/               # Template paket kategori 'extra'
-└── multilib/            # Template paket kategori 'multilib'
+├── extra/               # Templates for 'extra' category packages
+── multilib/            # Templates for 'multilib' category packages
 ```
 
-## 🏗️ Struktur Proyek
+## 🏗️ Project Structure
 
 ```text
 letx/
 ├── letx/
 │   ├── __init__.py
-│   ├── main.py          # Entry point CLI dan parsing argumen
+│   ├── main.py          # CLI entry point and argument parsing
 │   └── src/
 │       ├── __init__.py
-│       ├── config.py    # Konstanta URL dan path direktori
-│       ├── cmd.py       # Logika perintah (get, search, update, info)
-│       └── utility.py   # Fungsi utilitas (fetch, parse template, format grid)
-├── pyproject.toml       # Konfigurasi build dan metadata proyek
-├── LICENSE              # Lisensi proyek
-└── README.md            # Dokumentasi ini
+│       ├── config.py    # URL constants and directory paths
+│       ├── cmd.py       # Command logic (get, search, update, info)
+│       └── utility.py   # Utility functions (fetch, parse template, format grid)
+├── pyproject.toml       # Build configuration and project metadata
+├── LICENSE              # Project license
+└── README.md            # This documentation
 ```
 
-## 🛠️ Pengembangan (Development)
+## 🛠️ Development
 
-Jika Anda ingin berkontribusi atau memodifikasi kode:
+If you want to contribute or modify the code:
 
-1. Clone repositori dan masuk ke direktori proyek.
-2. Sinkronkan lingkungan pengembangan:
+1. Clone the repository and navigate to the project directory.
+2. Sync the development environment:
    ```bash
    uv sync
    ```
-3. Jalankan secara langsung tanpa menginstal:
+3. Run directly without installing:
    ```bash
    uv run letx --help
    ```
 
-## 📜 Lisensi
+## 📜 License
 
-Proyek ini didistribusikan di bawah lisensi yang sama dengan repositori induknya. Silakan lihat file [`LICENSE`](LICENSE) untuk detail lebih lanjut.
+This project is distributed under the same license as the parent repository. Please see the [`LICENSE`](LICENSE) file for more details.
 
-## 👥 Kontributor
+## 👥 Contributors
 
 - **Gh0sT4n** - *Lead Developer & Distributor* ([darskevoid@gmail.com](mailto:darskevoid@gmail.com))
