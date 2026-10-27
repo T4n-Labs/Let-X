@@ -1,0 +1,84 @@
+# ==========================================
+# Python Artifacts
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+.venv/
+venv/
+ENV/
+env/
+.venv
+
+# ==========================================
+# Build & Distribution (uv_build / pip)
+# ==========================================
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+sdist/
+wheels/
+*.whl
+
+# ==========================================
+# UV Specific
+# ==========================================
+# Direktori cache uv
+.uv/
+
+# Catatan: Untuk aplikasi CLI, 'uv.lock' SEBAIKNYA di-commit agar build reproducible.
+# Namun, jika Anda tidak ingin menguncinya, hapus tanda komentar di bawah:
+# uv.lock
+
+# ==========================================
+# Testing & Coverage
+# ==========================================
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+
+# ==========================================
+# IDE & Editor
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.editorconfig
+.project
+.classpath
+.settings/
+
+# ==========================================
+# OS Specific
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# Project Specific (Let-X)
+# ==========================================
+# Jika Anda membuat folder 'db' atau 'config' di root repo untuk keperluan testing lokal,
+# tambahkan di sini. Namun karena Let-X menyimpannya di ~/.config/letx, ini opsional.
+# db/
+# config/
