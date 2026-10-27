@@ -59,6 +59,10 @@ For a quick and automated installation (including system-wide or user-local setu
 
 > **Note:** The `setup.sh` script is maintained exclusively by **Gh0sT4n**.
 
+### Method 3: Using `xbps-src`
+
+[Here Docs](template/letx/README.md)
+
 ## 🗑️ Uninstallation
 
 How you uninstall Let-X depends on how you initially installed it. 
@@ -123,7 +127,7 @@ Let-X stores cached data and templates in the user's configuration directory (`~
 │   ├── packages.json
 │   ├── search.json
 │   ├── index.json
-│   ── categories.json
+│   └── categories.json
 ├── core/                # Templates for 'core' category packages
 │   └── calamares/
 │       └── template
@@ -147,9 +151,9 @@ letx/
 │   ├── __init__.py
 │   ├── test_utility.py
 │   └── test_cmd.py
-── pyproject.toml       # Build configuration and project metadata
+├── pyproject.toml       # Build configuration and project metadata
 ├── LICENSE              # Project license
-── README.md            # This documentation
+└── README.md            # This documentation
 ```
 
 ## 🛠️ Development & Testing

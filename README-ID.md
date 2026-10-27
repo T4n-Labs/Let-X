@@ -59,6 +59,10 @@ Untuk instalasi yang cepat dan otomatis (termasuk setup sistem-wide atau user-lo
 
 > **Catatan:** Script `setup.sh` ini dikelola secara eksklusif oleh **Gh0sT4n**.
 
+### Metode 3: Menggunakan `xbps-src`
+
+[Here Docs](template/letx/README.md)
+
 ## 🗑️ Menghapus Instalasi (Uninstall)
 
 Cara menghapus Let-X bergantung pada bagaimana Anda menginstalnya di awal.
