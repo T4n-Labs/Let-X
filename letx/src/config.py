@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from pathlib import Path
 
 BASE_URL = "https://raw.githubusercontent.com/T4n-Labs/vur/main"
 CONFIG_DIR = Path.home() / ".config" / "letx"
