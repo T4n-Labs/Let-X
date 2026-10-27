@@ -1,6 +1,6 @@
 # Let-X
 
-**Let-X** adalah alat bantu CLI (*Command Line Interface*) yang ringan dan cepat untuk mengelola **Void User Repository (VUR)**. Dibangun menggunakan Python murni (tanpa dependensi pihak ketiga), Let-X memudahkan pengguna untuk mencari, mengambil, memperbarui, dan melihat informasi detail paket dari repositori VUR.
+Let-X adalah alat bantu CLI (*Command Line Interface*) yang ringan dan cepat untuk mengelola **Void User Repository (VUR)**. Dibangun menggunakan Python murni (tanpa dependensi pihak ketiga), Let-X memudahkan pengguna untuk mencari, mengambil, memperbarui, dan melihat informasi detail paket dari repositori VUR.
 
 ## ✨ Fitur
 
@@ -59,6 +59,28 @@ Untuk instalasi yang cepat dan otomatis (termasuk setup sistem-wide atau user-lo
 
 > **Catatan:** Script `setup.sh` ini dikelola secara eksklusif oleh **Gh0sT4n**.
 
+## 🗑️ Menghapus Instalasi (Uninstall)
+
+Cara menghapus Let-X bergantung pada bagaimana Anda menginstalnya di awal.
+
+**Jika diinstal secara sistem-wide (menggunakan `sudo`):**
+```bash
+sudo ./setup.sh --uninstall
+
+# Untuk sekaligus menghapus direktori konfigurasi (~/.config/letx):
+sudo ./setup.sh --uninstall --clean-config
+```
+
+**Jika diinstal untuk user saat ini saja (tanpa `sudo`):**
+```bash
+./setup.sh --uninstall
+
+# Untuk sekaligus menghapus direktori konfigurasi (~/.config/letx):
+./setup.sh --uninstall --clean-config
+```
+
+> ️ **Penting:** Jangan gunakan `sudo` saat menghapus instalasi user-only. Jika Anda menggunakan `sudo`, script akan mencari file di direktori `/root` alih-alih direktori user Anda (`~/.local`), dan proses uninstall akan gagal secara diam-diam.
+
 ## 🚀 Penggunaan
 
 ### 1. Memperbarui Database
@@ -66,32 +88,11 @@ Sebelum menggunakan fitur lainnya, sinkronkan database lokal dengan repositori V
 ```bash
 letx update
 ```
-*Output:*
-```text
-🔄 Updating VUR database...
-   ⤓ Downloading packages.json...
-   ⤓ Downloading search.json...
-   ⤓ Downloading index.json...
-   ⤓ Downloading categories.json...
-✔ Database successfully updated!
-```
 
 ### 2. Mencari Paket
 Cari paket berdasarkan nama, deskripsi, atau kategori (misalnya: "browser", "dinit", "core"):
 ```bash
 letx search browser
-```
-*Output:*
-```text
-🔍 Found 5 package(s) for 'browser':
-
-PACKAGE NAME                   | CATEGORY   | DESCRIPTION
---------------------------------------------------------------------------------
-brave                          | extra      | Web browser that blocks ads and t...
-brave-origin                   | extra      | Minimalist browser from the maker...
-floorp                         | extra      | Firefox fork seeking balance betw...
-helium-browser                 | extra      | Private, fast, and honest web bro...
-zen-browser                    | extra      | Performance oriented Firefox-base...
 ```
 
 ### 3. Mengambil Template Paket
@@ -110,34 +111,6 @@ letx update calamares
 Tampilkan metadata lengkap paket, termasuk dependensi yang diformat dalam grid 4 kolom:
 ```bash
 letx info calamares
-```
-*Output:*
-```text
-Name Package    : calamares
-Version         : 3.4.2
-Revision        : 3
-Archs           : aarch64, x86_64, x86_64-musl, ...
-Description     : Distribution-independent installer framework
-Maintainer      : Naz <ndpm13@ch-naseem.com>
-Distributor     : Gh0sT4n <darskevoid@gmail.com>
-License         : BSD-2-Clause, GPL-3.0-or-later, ...
-Homepage        : https://calamares.io
-Build Style     : cmake
-Hostmakedepends :
--) git                   -) extra-cmake-modules -) pkg-config          -) gettext            
--) ckbcomp               -) kcoreaddons           -) python3-QtPy        -) libpwquality       
--) python3-yaml          -) python3-jsonschema  
-Makedepends     :
--) python3-devel         -) python3-jsonschema  -) yaml-cpp-devel      -) python3-yaml       
--) boost-devel           -) qt6-base-devel      -) python3-devel       -) kpmcore-devel      
--) qt6-tools             -) qt6-translations    -) boost               -) boost-python3      
--) python3-QtPy          -) qt6-svg-devel       -) libpwquality        -) qt6-webengine      
--) plasma-framework-devel -) qt6-webengine     
-Depends         :
--) kconfig               -) kcoreaddons         -) kiconthemes         -) ki18n              
--) kio                   -) ksolid              -) boost               -) ckbcomp            
--) polkit-qt6            -) gtk-update-icon-cache -) plasma-framework  -) squashfs-tools     
--) libpwquality        -) icu                 -) rsync               
 ```
 
 ## 📂 Struktur Direktori & Konfigurasi
@@ -198,14 +171,13 @@ Jika Anda ingin berkontribusi atau memodifikasi kode, ikuti langkah-langkah beri
    ```bash
    uv run pytest tests/ -v
    ```
-
+   
 4. **Jalankan secara langsung tanpa menginstal:**
    ```bash
    uv run letx --help
    ```
 
-### 🧪 Menulis Tes
-Semua fitur baru atau perbaikan bug harus menyertakan pengujian yang sesuai di direktori `tests/`. Kami menggunakan `pytest` sebagai framework pengujian. Pastikan semua tes berhasil (`passed`) sebelum mengirimkan Pull Request.
+> **Menulis Tes:** Semua fitur baru atau perbaikan bug harus menyertakan pengujian yang sesuai di direktori `tests/`. Kami menggunakan `pytest` sebagai framework pengujian. Pastikan semua tes berhasil (`passed`) sebelum mengirimkan Pull Request.
 
 ## 📜 Lisensi
 
