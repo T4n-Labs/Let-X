@@ -170,6 +170,10 @@ letx/
 │       ├── config.py    # URL constants and directory paths
 │       ├── cmd.py       # Command logic (get, search, update, info)
 │       └── utility.py   # Utility functions (fetch, parse template, format grid)
+├── tests/
+│   ├── __init__.py
+│   ├── test_utility.py
+│   └── test_cmd.py
 ├── pyproject.toml       # Build configuration and project metadata
 ├── LICENSE              # Project license
 └── README.md            # This documentation

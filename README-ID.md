@@ -170,6 +170,10 @@ letx/
 │       ├── config.py    # Konstanta URL dan path direktori
 │       ├── cmd.py       # Logika perintah (get, search, update, info)
 │       └── utility.py   # Fungsi utilitas (fetch, parse template, format grid)
+├── tests/
+│   ├── __init__.py
+│   ├── test_utility.py
+│   └── test_cmd.py
 ├── pyproject.toml       # Konfigurasi build dan metadata proyek
 ├── LICENSE              # Lisensi proyek
 └── README-ID.md         # Dokumentasi ini (Bahasa Indonesia)
