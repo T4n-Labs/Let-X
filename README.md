@@ -2,6 +2,10 @@
 
 Let-X is a lightweight and fast CLI (Command Line Interface) tool designed to manage the **Void User Repository (VUR)**. Built using pure Python (without any third-party dependencies), Let-X makes it easy for users to search, retrieve, update, and view detailed package information from the VUR repository.
 
+## Mirror
+1. T4n-Labs Github : https://github.com/T4n-Labs/Let-X
+2. Gitlab : https://gitlab.com/t4n-pkg/let-x
+
 ## ✨ Features
 
 - 🚀 **Fast & Lightweight**: Uses only the **Python Standard Library** (`urllib`, `json`, `re`, `argparse`, `pathlib`), meaning no external `pip install` dependencies are required.

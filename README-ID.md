@@ -2,6 +2,10 @@
 
 Let-X adalah alat bantu CLI (*Command Line Interface*) yang ringan dan cepat untuk mengelola **Void User Repository (VUR)**. Dibangun menggunakan Python murni (tanpa dependensi pihak ketiga), Let-X memudahkan pengguna untuk mencari, mengambil, memperbarui, dan melihat informasi detail paket dari repositori VUR.
 
+## Mirror
+1. T4n-Labs Github : https://github.com/T4n-Labs/Let-X
+2. Gitlab : https://gitlab.com/t4n-pkg/let-x
+
 ## ✨ Fitur
 
 - 🚀 **Cepat & Ringan**: Hanya menggunakan **Python Standard Library** (`urllib`, `json`, `re`, `argparse`, `pathlib`), sehingga tidak memerlukan `pip install` untuk dependensi eksternal.
